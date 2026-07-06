@@ -1,0 +1,137 @@
+import {
+  boolean,
+  date,
+  integer,
+  jsonb,
+  pgTable,
+  real,
+  serial,
+  text,
+  timestamp,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
+
+// 서비스화 대비 메모 (기획서 §11.4): user_id는 지금 넣지 않되,
+// 모든 쿼리를 queries/ 폴더에 모아 나중에 한 곳만 수정하면 되게 유지한다.
+
+export const stocks = pgTable("stocks", {
+  symbol: text("symbol").primaryKey(), // "US:AAPL" | "KR:005930"
+  name: text("name").notNull(),
+  market: text("market", { enum: ["US", "KR"] }).notNull(),
+  addedAt: timestamp("added_at").defaultNow().notNull(),
+});
+
+/** 종목당 1행 유지 (이력은 candles 담당) → 캐시 로직 단순화 */
+export const quotes = pgTable("quotes", {
+  stockSymbol: text("stock_symbol")
+    .primaryKey()
+    .references(() => stocks.symbol, { onDelete: "cascade" }),
+  price: real("price").notNull(),
+  changePct: real("change_pct").notNull(),
+  fetchedAt: timestamp("fetched_at").notNull(),
+});
+
+export const candles = pgTable(
+  "candles",
+  {
+    id: serial("id").primaryKey(),
+    stockSymbol: text("stock_symbol")
+      .notNull()
+      .references(() => stocks.symbol, { onDelete: "cascade" }),
+    date: date("date").notNull(),
+    open: real("open"),
+    high: real("high"),
+    low: real("low"),
+    close: real("close").notNull(),
+    volume: real("volume"),
+  },
+  (t) => [uniqueIndex("candles_sym_date").on(t.stockSymbol, t.date)],
+);
+
+export const financials = pgTable("financials", {
+  stockSymbol: text("stock_symbol")
+    .primaryKey()
+    .references(() => stocks.symbol, { onDelete: "cascade" }),
+  per: real("per"),
+  pbr: real("pbr"),
+  eps: real("eps"),
+  roe: real("roe"),
+  debtToEquity: real("debt_to_equity"),
+  dividendYield: real("dividend_yield"),
+  marketCap: real("market_cap"),
+  w52High: real("w52_high"),
+  w52Low: real("w52_low"),
+  fetchedAt: timestamp("fetched_at").notNull(),
+});
+
+export const news = pgTable("news", {
+  id: serial("id").primaryKey(),
+  stockSymbol: text("stock_symbol")
+    .notNull()
+    .references(() => stocks.symbol, { onDelete: "cascade" }),
+  headline: text("headline").notNull(),
+  source: text("source"),
+  url: text("url").notNull().unique(),
+  publishedAt: timestamp("published_at"),
+  fetchedAt: timestamp("fetched_at").defaultNow().notNull(), // 1h TTL 판단용
+});
+
+export const notes = pgTable("notes", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  tags: text("tags").array().notNull().default([]),
+  source: text("source"),
+  relatedSymbols: text("related_symbols").array().notNull().default([]),
+  aiReview: jsonb("ai_review").$type<{
+    factual_issues: string[];
+    overgeneralizations: string[];
+    counterexamples: string[];
+    suggestions: string[];
+    overall: string;
+  }>(),
+  reviewedAt: timestamp("reviewed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const analyses = pgTable("analyses", {
+  id: serial("id").primaryKey(),
+  stockSymbol: text("stock_symbol")
+    .notNull()
+    .references(() => stocks.symbol, { onDelete: "cascade" }),
+  verdict: text("verdict", { enum: ["매수검토", "관망", "회피"] }).notNull(),
+  confidence: integer("confidence"),
+  reasons: jsonb("reasons").$type<string[]>(),
+  risks: jsonb("risks").$type<string[]>(),
+  challenges: jsonb("challenges").$type<string[]>(),
+  citedNoteIds: integer("cited_note_ids").array().notNull().default([]),
+  priceAtAnalysis: real("price_at_analysis"),
+  trigger: text("trigger", { enum: ["manual", "briefing"] })
+    .notNull()
+    .default("manual"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const rules = pgTable("rules", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  definition: jsonb("definition").$type<Array<{ metric: string; op: string; value: number }>>().notNull(),
+  enabled: boolean("enabled").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const briefings = pgTable("briefings", {
+  id: serial("id").primaryKey(),
+  slot: text("slot", { enum: ["morning", "evening"] }).notNull(),
+  marketSummary: text("market_summary"),
+  stockSections: jsonb("stock_sections").$type<Array<{ symbol: string; name: string; changePct: number | null; summary: string }>>(),
+  watchItems: jsonb("watch_items").$type<Array<{ symbol: string; name: string; reason: string; basis: string }>>(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const kisTokens = pgTable("kis_tokens", {
+  id: serial("id").primaryKey(),
+  accessToken: text("access_token").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+});

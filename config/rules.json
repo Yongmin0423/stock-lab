@@ -1,0 +1,17 @@
+[
+  {
+    "name": "저평가 우량주",
+    "rules": [
+      { "metric": "per", "op": "<", "value": 15 },
+      { "metric": "debtToEquity", "op": "<", "value": 100 },
+      { "metric": "roe", "op": ">", "value": 10 }
+    ]
+  },
+  {
+    "name": "배당주",
+    "rules": [
+      { "metric": "dividendYield", "op": ">", "value": 2 },
+      { "metric": "per", "op": "<", "value": 20 }
+    ]
+  }
+]

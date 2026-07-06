@@ -1,0 +1,124 @@
+import Link from "next/link";
+import { BriefingGenerate } from "@/components/briefing-generate";
+import { DbSetupNotice } from "@/components/db-setup-notice";
+import { hasDb } from "@/lib/db";
+import { getBriefing, listBriefings } from "@/lib/db/queries/briefings";
+import { changeColorClass, formatChange } from "@/lib/format";
+
+export const dynamic = "force-dynamic";
+
+const SLOT_LABEL = { morning: "🌅 아침", evening: "🌆 저녁" } as const;
+
+export default async function BriefingPage({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
+  if (!hasDb()) return <DbSetupNotice />;
+  const { id } = await searchParams;
+
+  const archive = await listBriefings(14);
+  const current = id ? await getBriefing(Number(id)) : archive[0];
+
+  return (
+    <div>
+      <div className="mb-5 flex flex-wrap items-center gap-4">
+        <h1 className="text-xl font-extrabold tracking-tight">브리핑</h1>
+        <BriefingGenerate />
+      </div>
+
+      {!current ? (
+        <div className="rounded-xl border border-dashed border-[var(--border)] p-10 text-center text-sm text-[var(--text-dim)]">
+          아직 브리핑이 없어요. 위 버튼으로 첫 브리핑을 생성해보세요.
+          <div className="mt-2 text-xs text-[var(--text-faint)]">
+            (배포 후에는 매일 아침·저녁 자동 생성됩니다 — M8에서 cron 연결)
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="mb-4 flex items-center gap-3 text-sm text-[var(--text-dim)]">
+            <span className="font-bold text-[var(--text)]">{SLOT_LABEL[current.slot]}</span>
+            {new Date(current.createdAt).toLocaleString("ko-KR")} 생성
+          </div>
+
+          {/* 시장 요약 */}
+          <div className="rounded-xl border border-[rgba(124,108,240,0.4)] bg-gradient-to-b from-[rgba(124,108,240,0.08)] to-transparent p-5">
+            <div className="text-xs font-bold text-[var(--accent)]">시장 요약</div>
+            <p className="mt-1.5 text-sm leading-relaxed text-[var(--text-dim)]">{current.marketSummary}</p>
+          </div>
+
+          {/* 주목 종목 */}
+          {(current.watchItems?.length ?? 0) > 0 && (
+            <>
+              <h2 className="mb-3 mt-6 text-[13px] font-bold uppercase tracking-wider text-[var(--text-dim)]">
+                주목 종목
+              </h2>
+              <div className="grid gap-3 md:grid-cols-3">
+                {current.watchItems!.map((w, i) => (
+                  <Link
+                    key={i}
+                    href={`/stock/${encodeURIComponent(w.symbol)}`}
+                    className="rounded-xl border border-[rgba(217,166,63,0.4)] bg-gradient-to-b from-[rgba(217,166,63,0.07)] to-transparent p-4 hover:border-[var(--gold)]"
+                  >
+                    <div className="font-bold">{w.name}</div>
+                    <p className="mt-1.5 text-sm text-[var(--text-dim)]">{w.reason}</p>
+                    <div className="mt-2 text-xs text-[var(--gold)]">근거: {w.basis}</div>
+                  </Link>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* 종목별 변화 */}
+          <h2 className="mb-3 mt-6 text-[13px] font-bold uppercase tracking-wider text-[var(--text-dim)]">
+            종목별 변화
+          </h2>
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4">
+            {current.stockSections?.map((s) => {
+              const quiet = s.summary.includes("특이사항 없음");
+              return (
+                <div key={s.symbol} className="flex gap-4 border-b border-[var(--border)] py-3 last:border-none">
+                  <Link
+                    href={`/stock/${encodeURIComponent(s.symbol)}`}
+                    className="w-28 shrink-0 text-sm font-bold hover:underline"
+                  >
+                    {s.name}
+                    {s.changePct != null && (
+                      <span className={`num block text-xs font-semibold ${changeColorClass(s.changePct)}`}>
+                        {formatChange(s.changePct)}
+                      </span>
+                    )}
+                  </Link>
+                  <p className={`text-sm leading-relaxed ${quiet ? "text-[var(--text-faint)]" : "text-[var(--text-dim)]"}`}>
+                    {s.summary}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* 아카이브 */}
+      {archive.length > 1 && (
+        <>
+          <h2 className="mb-3 mt-8 text-[13px] font-bold uppercase tracking-wider text-[var(--text-dim)]">
+            지난 브리핑
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {archive.map((b) => (
+              <Link
+                key={b.id}
+                href={`/briefing?id=${b.id}`}
+                className={`rounded-full border px-3 py-1 text-xs ${
+                  current?.id === b.id
+                    ? "border-[var(--accent)] text-[var(--accent)]"
+                    : "border-[var(--border)] text-[var(--text-dim)] hover:border-[var(--text-faint)]"
+                }`}
+              >
+                {new Date(b.createdAt).toLocaleDateString("ko-KR", { month: "numeric", day: "numeric" })}{" "}
+                {SLOT_LABEL[b.slot]}
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}

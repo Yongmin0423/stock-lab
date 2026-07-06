@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+/* ── 디자인 토큰 (디자인_목업.html과 동일) ── */
+:root {
+  --bg: #0e1116;
+  --surface: #161b22;
+  --surface-2: #1e242e;
+  --border: #2a313c;
+  --text: #e6e9ee;
+  --text-dim: #9aa4b2;
+  --text-faint: #5c6672;
+  --up: #f04452;
+  --down: #3182f6;
+  --accent: #7c6cf0;
+  --gold: #d9a63f;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", sans-serif;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
