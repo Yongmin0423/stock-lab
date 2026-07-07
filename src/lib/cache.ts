@@ -171,6 +171,37 @@ export async function getNewsCached(symbol: string, name: string) {
         .onConflictDoUpdate({ target: news.url, set: { fetchedAt: new Date() } });
     }
 
+    // AI 평가: 아직 평가 안 된 뉴스만 배치로 (Haiku, 실패해도 뉴스 표시엔 영향 없음)
+    try {
+      const { hasAiKey } = await import("./ai/analyze");
+      if (hasAiKey()) {
+        const { isNull, and: andOp } = await import("drizzle-orm");
+        const unevaluated = await db
+          .select({ id: news.id, headline: news.headline })
+          .from(news)
+          .where(andOp(eq(news.stockSymbol, symbol), isNull(news.sentiment)))
+          .orderBy(desc(news.publishedAt))
+          .limit(20);
+        if (unevaluated.length > 0) {
+          const { evaluateNewsBatch } = await import("./ai/news-eval");
+          const { listNotes } = await import("./db/queries/notes");
+          const digest = (await listNotes())
+            .slice(0, 10)
+            .map((n) => `[${n.tags.join(",")}] ${n.title}`)
+            .join(" / ");
+          const evals = await evaluateNewsBatch(unevaluated, name, digest);
+          for (const ev of evals) {
+            await db
+              .update(news)
+              .set({ sentiment: ev.sentiment, importance: ev.importance, aiNote: ev.note || null })
+              .where(eq(news.id, ev.id));
+          }
+        }
+      }
+    } catch {
+      // 평가 실패 무시 — 다음 수집 때 재시도됨
+    }
+
     return db.select().from(news).where(eq(news.stockSymbol, symbol)).orderBy(desc(news.publishedAt)).limit(20);
   } catch {
     return rows; // 실패 시 기존 캐시

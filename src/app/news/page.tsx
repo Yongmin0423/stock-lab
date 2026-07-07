@@ -1,42 +1,56 @@
 import Link from "next/link";
 import { DbSetupNotice } from "@/components/db-setup-notice";
-import { NewsList, type NewsRow } from "@/components/news-list";
-import { getNewsCached } from "@/lib/cache";
+import { NewsList } from "@/components/news-list";
+import { RefreshNewsButton } from "@/components/refresh-news-button";
 import { hasDb } from "@/lib/db";
+import { listAllNews } from "@/lib/db/queries/news";
 import { getWatchlist } from "@/lib/db/queries/stocks";
 
 export const dynamic = "force-dynamic";
 
+function pageHref(page: number, symbol?: string) {
+  const p = new URLSearchParams();
+  if (page > 1) p.set("page", String(page));
+  if (symbol) p.set("symbol", symbol);
+  const s = p.toString();
+  return `/news${s ? `?${s}` : ""}`;
+}
+
 export default async function NewsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ symbol?: string }>;
+  searchParams: Promise<{ symbol?: string; page?: string }>;
 }) {
   if (!hasDb()) return <DbSetupNotice />;
-  const { symbol: filter } = await searchParams;
+  const { symbol: filter, page: pageRaw } = await searchParams;
+  const page = Number(pageRaw) || 1;
 
-  const list = await getWatchlist();
-  const all: NewsRow[] = [];
-  // KIS 초당 제한 대비 순차 수집 (대부분 1h 캐시라 DB 조회로 끝남)
-  for (const s of list) {
-    if (filter && s.symbol !== filter) continue;
-    const items = await getNewsCached(s.symbol, s.name);
-    all.push(...items);
-  }
-  all.sort((a, b) => (b.publishedAt?.getTime() ?? 0) - (a.publishedAt?.getTime() ?? 0));
+  // DB만 조회 — 즉시 응답. 수집·AI 평가는 ↻ 버튼 또는 cron이 담당
+  const [{ rows, total, totalPages }, list] = [
+    await listAllNews({ page, symbol: filter }),
+    await getWatchlist(),
+  ];
+
+  const pages = [...new Set([1, page - 1, page, page + 1, totalPages])]
+    .filter((p) => p >= 1 && p <= totalPages)
+    .sort((a, b) => a - b);
 
   return (
     <div>
-      <h1 className="mb-4 text-xl font-extrabold tracking-tight">뉴스</h1>
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <h1 className="text-xl font-extrabold tracking-tight">뉴스</h1>
+        <span className="text-xs text-[var(--text-faint)]">{total.toLocaleString()}건</span>
+        <div className="ml-auto">
+          <RefreshNewsButton />
+        </div>
+      </div>
 
       {/* 종목 필터 칩 */}
       <div className="mb-4 flex flex-wrap gap-2">
         <Link
           href="/news"
           className={`rounded-full border px-3 py-1 text-xs ${
-            !filter
-              ? "border-[var(--accent)] text-[var(--accent)]"
-              : "border-[var(--border)] text-[var(--text-dim)]"
+            !filter ? "border-[var(--accent)] text-[var(--accent)]" : "border-[var(--border)] text-[var(--text-dim)]"
           }`}
         >
           전체
@@ -44,7 +58,7 @@ export default async function NewsPage({
         {list.map((s) => (
           <Link
             key={s.symbol}
-            href={`/news?symbol=${encodeURIComponent(s.symbol)}`}
+            href={pageHref(1, s.symbol)}
             className={`rounded-full border px-3 py-1 text-xs ${
               filter === s.symbol
                 ? "border-[var(--accent)] text-[var(--accent)]"
@@ -56,7 +70,45 @@ export default async function NewsPage({
         ))}
       </div>
 
-      <NewsList items={all.slice(0, 50)} showSymbol />
+      {rows.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-[var(--border)] p-10 text-center text-sm text-[var(--text-dim)]">
+          아직 뉴스가 없어요 — 우측 상단 ↻ 버튼으로 수집해보세요.
+        </div>
+      ) : (
+        <>
+          <NewsList items={rows} showSymbol />
+
+          {totalPages > 1 && (
+            <div className="num mt-4 flex flex-wrap items-center gap-1.5">
+              {page > 1 && (
+                <Link href={pageHref(page - 1, filter)} className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--text-dim)] hover:border-[var(--text-faint)]">
+                  ‹ 이전
+                </Link>
+              )}
+              {pages.map((p, i) => (
+                <span key={p} className="flex items-center gap-1.5">
+                  {i > 0 && pages[i - 1] !== p - 1 && <span className="text-xs text-[var(--text-faint)]">…</span>}
+                  <Link
+                    href={pageHref(p, filter)}
+                    className={`rounded-lg border px-3 py-1.5 text-xs ${
+                      p === page
+                        ? "border-[var(--accent)] font-bold text-[var(--accent)]"
+                        : "border-[var(--border)] text-[var(--text-dim)] hover:border-[var(--text-faint)]"
+                    }`}
+                  >
+                    {p}
+                  </Link>
+                </span>
+              ))}
+              {page < totalPages && (
+                <Link href={pageHref(page + 1, filter)} className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--text-dim)] hover:border-[var(--text-faint)]">
+                  다음 ›
+                </Link>
+              )}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
