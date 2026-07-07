@@ -74,6 +74,10 @@ export const news = pgTable("news", {
   url: text("url").notNull().unique(),
   publishedAt: timestamp("published_at"),
   fetchedAt: timestamp("fetched_at").defaultNow().notNull(), // 1h TTL 판단용
+  // AI 평가 (수집 시 Haiku 배치 — 키 없으면 null 유지)
+  sentiment: text("sentiment", { enum: ["호재", "악재", "중립"] }),
+  importance: integer("importance"), // 1~3
+  aiNote: text("ai_note"), // 내 원칙과의 관련성 한 줄
 });
 
 export const notes = pgTable("notes", {
@@ -134,4 +138,22 @@ export const kisTokens = pgTable("kis_tokens", {
   id: serial("id").primaryKey(),
   accessToken: text("access_token").notNull(),
   expiresAt: timestamp("expires_at").notNull(),
+});
+
+/** 발굴(추천) 결과 — 최신 결과를 대시보드·/discover에 상시 표시 */
+export const discoveries = pgTable("discoveries", {
+  id: serial("id").primaryKey(),
+  picks: jsonb("picks").$type<
+    Array<{ symbol: string; name: string; fit_score: number; reason: string; cited: string; caution: string }>
+  >().notNull(),
+  scannedCount: integer("scanned_count"),
+  candidateCount: integer("candidate_count"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+/** 종목 마스터 — KR은 scripts/load-krx-master.mjs로 적재, US 대형주는 자동 시드 */
+export const stocksMaster = pgTable("stocks_master", {
+  code: text("code").primaryKey(), // "005930" | "AAPL"
+  name: text("name").notNull(),
+  market: text("market", { enum: ["US", "KR"] }).notNull().default("KR"),
 });
