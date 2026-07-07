@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { NoteEditor } from "@/components/note-editor";
 import { NoteReview } from "@/components/note-review";
+import { NoteToRule } from "@/components/note-to-rule";
 import { DbSetupNotice } from "@/components/db-setup-notice";
 import { hasDb } from "@/lib/db";
 import { getNote } from "@/lib/db/queries/notes";
@@ -29,6 +30,7 @@ export default async function EditNotePage({ params }: { params: Promise<{ id: s
       </div>
       <NoteEditor note={note} />
       <NoteReview noteId={note.id} initial={note.aiReview ?? null} initialAt={note.reviewedAt ?? null} />
+      <NoteToRule noteId={note.id} />
     </div>
   );
 }

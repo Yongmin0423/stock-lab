@@ -23,9 +23,15 @@ export default async function NotesPage({
         <span className="text-xs text-[var(--text-faint)]">
           여기 쌓이는 내용이 AI 분석의 판단 기준이 됩니다
         </span>
+        <a
+          href="/api/export-notes"
+          className="ml-auto rounded-xl border border-[var(--border)] px-3 py-2 text-xs text-[var(--text-dim)] hover:border-[var(--text-faint)]"
+        >
+          ⬇ 백업(.md)
+        </a>
         <Link
           href="/notes/new"
-          className="ml-auto rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-bold text-white hover:brightness-110"
+          className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-bold text-white hover:brightness-110"
         >
           + 새 노트
         </Link>
