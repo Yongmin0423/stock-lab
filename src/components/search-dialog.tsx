@@ -87,7 +87,9 @@ export function SearchDialog({ existing }: { existing: string[] }) {
             <div className="max-h-80 overflow-y-auto p-2">
               {loading && <div className="px-3 py-4 text-sm text-[var(--text-faint)]">검색 중…</div>}
               {!loading && query && results.length === 0 && (
-                <div className="px-3 py-4 text-sm text-[var(--text-faint)]">결과 없음 (한국 주식은 M4에서 지원 예정)</div>
+                <div className="px-3 py-4 text-sm text-[var(--text-faint)]">
+                  결과 없음 — 한국 종목이 안 나오면 `node scripts/load-krx-master.mjs` 실행 여부를 확인하세요
+                </div>
               )}
               {results.map((r) => {
                 const added = existing.includes(r.symbol);

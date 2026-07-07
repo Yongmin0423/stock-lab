@@ -1,9 +1,26 @@
 import Link from "next/link";
 import { removeStockAction } from "@/app/actions";
+import { Sparkline } from "@/components/sparkline";
 import { changeColorClass, formatChange, formatPrice } from "@/lib/format";
 import type { Quote } from "@/lib/providers/types";
 
-export function StockCard({ quote }: { quote: Quote }) {
+const VERDICT_COLOR: Record<string, string> = {
+  매수검토: "text-[var(--up)] border-[rgba(240,68,82,0.4)]",
+  관망: "text-[var(--accent)] border-[rgba(124,108,240,0.4)]",
+  회피: "text-[var(--down)] border-[rgba(49,130,246,0.4)]",
+};
+
+export function StockCard({
+  quote,
+  closes = [],
+  passedRules = [],
+  verdict,
+}: {
+  quote: Quote;
+  closes?: number[];
+  passedRules?: string[];
+  verdict?: string;
+}) {
   return (
     <div className="group rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 transition-colors hover:border-[var(--text-faint)]">
       <div className="flex items-start justify-between">
@@ -35,6 +52,27 @@ export function StockCard({ quote }: { quote: Quote }) {
           {formatChange(quote.changePct)}
         </span>
       </div>
+
+      <Sparkline closes={closes} />
+
+      {(passedRules.length > 0 || verdict) && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {passedRules.map((r) => (
+            <span
+              key={r}
+              className="rounded-full border border-[rgba(217,166,63,0.5)] px-2 py-0.5 text-[11px] text-[var(--gold)]"
+            >
+              ✓ {r}
+            </span>
+          ))}
+          {verdict && (
+            <span className={`rounded-full border px-2 py-0.5 text-[11px] ${VERDICT_COLOR[verdict] ?? ""}`}>
+              AI: {verdict}
+            </span>
+          )}
+        </div>
+      )}
+
       <div className="mt-2 text-[11px] text-[var(--text-faint)]">
         {quote.asOf.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })} 기준
         {quote.isMock && " · 모의 데이터"}

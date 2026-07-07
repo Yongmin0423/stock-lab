@@ -10,6 +10,8 @@ const MOCK_QUOTES: Record<string, { price: number; changePct: number }> = {
   NVDA: { price: 176.75, changePct: 1.93 },
   GOOGL: { price: 201.33, changePct: -0.21 },
   TSLA: { price: 322.18, changePct: 2.75 },
+  SPY: { price: 641.2, changePct: -0.31 },
+  QQQ: { price: 552.4, changePct: -0.54 },
 };
 
 function apiKey(): string | undefined {

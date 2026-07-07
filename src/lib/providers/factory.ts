@@ -1,11 +1,11 @@
 import { finnhub } from "./finnhub";
+import { kis } from "./kis";
 import { parseSymbol, type MarketDataProvider, type Quote } from "./types";
 
-/** market 기준 Provider 라우팅. M4에서 KR → kis 추가 */
+/** market 기준 Provider 라우팅 */
 export function providerFor(fullSymbol: string): MarketDataProvider {
   const { market } = parseSymbol(fullSymbol);
-  if (market === "US") return finnhub;
-  throw new Error("한국 주식(KIS)은 M4에서 지원 예정입니다.");
+  return market === "US" ? finnhub : kis;
 }
 
 /** 시세 조회 (KIS 초당 제한 대비 — 병렬 아닌 순차 호출) */

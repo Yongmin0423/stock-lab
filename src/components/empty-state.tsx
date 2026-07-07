@@ -5,8 +5,9 @@ const STARTERS = [
   { symbol: "US:AAPL", name: "Apple", market: "US" as const },
   { symbol: "US:MSFT", name: "Microsoft", market: "US" as const },
   { symbol: "US:NVDA", name: "NVIDIA", market: "US" as const },
-  { symbol: "US:GOOGL", name: "Alphabet", market: "US" as const },
-  { symbol: "US:AMZN", name: "Amazon", market: "US" as const },
+  { symbol: "KR:005930", name: "삼성전자", market: "KR" as const },
+  { symbol: "KR:005380", name: "현대차", market: "KR" as const },
+  { symbol: "KR:000660", name: "SK하이닉스", market: "KR" as const },
 ];
 
 export function EmptyState() {
@@ -24,7 +25,7 @@ export function EmptyState() {
           </form>
         ))}
       </div>
-      <p className="mt-4 text-xs text-[var(--text-faint)]">한국 주식은 M4(KIS 연동)에서 추가됩니다.</p>
+      <p className="mt-4 text-xs text-[var(--text-faint)]">한국 종목은 KIS 앱키 설정 후 시세가 표시됩니다.</p>
     </div>
   );
 }

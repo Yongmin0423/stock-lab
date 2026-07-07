@@ -4,6 +4,11 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "StockLab",
   description: "내 투자 공부가 AI의 판단 기준이 되는 개인 리서치 대시보드",
+  manifest: "/manifest.json",
+};
+
+export const viewport = {
+  themeColor: "#0e1116",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -26,6 +31,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </a>
             <a href="/notes" className="rounded-lg px-3 py-1.5 hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
               노트
+            </a>
+            <a href="/discover" className="rounded-lg px-3 py-1.5 hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
+              발굴
+            </a>
+            <a href="/stocks" className="rounded-lg px-3 py-1.5 hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
+              전체 종목
             </a>
             <a href="/settings" className="rounded-lg px-3 py-1.5 hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
               설정
