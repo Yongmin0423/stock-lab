@@ -151,6 +151,12 @@ export const discoveries = pgTable("discoveries", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+/** DART 고유번호 매핑 (종목코드 ↔ corp_code) — scripts/load-dart-corpcodes.mjs로 적재 */
+export const dartCorpCodes = pgTable("dart_corp_codes", {
+  stockCode: text("stock_code").primaryKey(), // "005930"
+  corpCode: text("corp_code").notNull(), // DART 8자리 고유번호
+});
+
 /** 종목 마스터 — KR은 scripts/load-krx-master.mjs로 적재, US 대형주는 자동 시드 */
 export const stocksMaster = pgTable("stocks_master", {
   code: text("code").primaryKey(), // "005930" | "AAPL"

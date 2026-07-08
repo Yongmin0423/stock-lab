@@ -68,7 +68,7 @@ const FUND_TTL_MS = 24 * 60 * 60 * 1000;
 /** 재무지표 캐시 (24h TTL) */
 export async function getFundamentalsCached(symbol: string) {
   const db = getDb();
-  const { code } = parseSymbol(symbol);
+  const { code, market } = parseSymbol(symbol);
   const { financials } = await import("./db/schema");
 
   const cached = await db.query.financials.findFirst({
@@ -78,6 +78,17 @@ export async function getFundamentalsCached(symbol: string) {
 
   try {
     const f = await providerFor(symbol).getFundamentals(code);
+
+    // 한국: KIS가 안 주는 ROE·부채비율·배당수익률을 DART로 보강 (기획서 §4.4)
+    if (market === "KR" && (f.roe == null || f.debtToEquity == null || f.dividendYield == null)) {
+      const { dartEnrich } = await import("./providers/dart");
+      const q = await db.query.quotes.findFirst({ where: eq(quotes.stockSymbol, symbol) });
+      const extra = await dartEnrich(code, q?.price ?? null);
+      f.roe ??= extra.roe;
+      f.debtToEquity ??= extra.debtToEquity;
+      f.dividendYield ??= extra.dividendYield;
+    }
+
     const row = {
       stockSymbol: symbol,
       per: f.per ?? null,
