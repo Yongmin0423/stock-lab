@@ -1,5 +1,5 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
+import { llmJson } from "./llm";
 import type { NoteRow } from "@/lib/db/queries/notes";
 import type { RuleResult } from "@/lib/rules";
 
@@ -38,8 +38,6 @@ export function mockDiscover(candidates: DiscoverCandidate[]): DiscoverResult {
 
 /** 2단계: 룰 통과 후보들을 내 노트(원칙) 기준으로 적합도 평가 */
 export async function runDiscover(candidates: DiscoverCandidate[], notes: NoteRow[]): Promise<DiscoverResult> {
-  const client = new Anthropic();
-
   const system = `너는 나의 투자 원칙에 맞는 종목을 발굴하는 리서치 파트너다.
 아래 후보들은 이미 정량 스크리닝 룰을 통과했다. 이제 "나의 투자 원칙"(노트) 관점에서 적합도를 평가하라.
 
@@ -66,41 +64,32 @@ ${candidates
 
 내 원칙 기준으로 적합도를 평가해 submit_picks 도구로 제출하라.`;
 
-  const msg = await client.messages.create({
-    model: "claude-sonnet-4-5",
-    max_tokens: 2500,
+  const result = await llmJson({
     system,
-    messages: [{ role: "user", content: user }],
-    tools: [
-      {
-        name: "submit_picks",
-        description: "발굴 결과 제출",
-        input_schema: {
-          type: "object" as const,
-          properties: {
-            picks: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  symbol: { type: "string" },
-                  fit_score: { type: "integer", minimum: 1, maximum: 5 },
-                  reason: { type: "string" },
-                  cited: { type: "string" },
-                  caution: { type: "string" },
-                },
-                required: ["symbol", "fit_score", "reason", "cited", "caution"],
-              },
+    user,
+    schemaName: "submit_picks",
+    maxTokens: 2500,
+    schema: {
+      type: "object",
+      properties: {
+        picks: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              symbol: { type: "string" },
+              fit_score: { type: "integer", minimum: 1, maximum: 5 },
+              reason: { type: "string" },
+              cited: { type: "string" },
+              caution: { type: "string" },
             },
+            required: ["symbol", "fit_score", "reason", "cited", "caution"],
           },
-          required: ["picks"],
         },
       },
-    ],
-    tool_choice: { type: "tool", name: "submit_picks" },
+      required: ["picks"],
+    },
   });
 
-  const toolUse = msg.content.find((c) => c.type === "tool_use");
-  if (!toolUse || toolUse.type !== "tool_use") throw new Error("AI 응답에 발굴 결과가 없습니다");
-  return DiscoverSchema.parse(toolUse.input);
+  return DiscoverSchema.parse(result);
 }

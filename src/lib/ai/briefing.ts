@@ -1,5 +1,5 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
+import { llmJson } from "./llm";
 import type { RuleResult } from "@/lib/rules";
 
 export const BriefingSchema = z.object({
@@ -62,8 +62,6 @@ export function mockBriefing(ctx: BriefingContext): BriefingResult {
 }
 
 export async function runBriefing(ctx: BriefingContext): Promise<BriefingResult> {
-  const client = new Anthropic();
-
   const system = `너는 나만의 투자 리서치 브리핑을 작성하는 애널리스트다.
 ${SLOT_ROLE[ctx.slot]}
 
@@ -95,52 +93,43 @@ ${ctx.stocks
 
 위 데이터로 브리핑을 작성해 submit_briefing 도구로 제출하라.`;
 
-  const msg = await client.messages.create({
-    model: "claude-sonnet-4-5",
-    max_tokens: 3000,
+  const result = await llmJson({
     system,
-    messages: [{ role: "user", content: user }],
-    tools: [
-      {
-        name: "submit_briefing",
-        description: "브리핑 제출",
-        input_schema: {
-          type: "object" as const,
-          properties: {
-            market_summary: { type: "string", description: "시장 전반 요약 2~4문장" },
-            stock_sections: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  symbol: { type: "string" },
-                  summary: { type: "string", description: "종목별 델타 요약. 변화 없으면 '특이사항 없음'" },
-                },
-                required: ["symbol", "summary"],
-              },
+    user,
+    schemaName: "submit_briefing",
+    maxTokens: 3000,
+    schema: {
+      type: "object",
+      properties: {
+        market_summary: { type: "string", description: "시장 전반 요약 2~4문장" },
+        stock_sections: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              symbol: { type: "string" },
+              summary: { type: "string", description: "종목별 델타 요약. 변화 없으면 '특이사항 없음'" },
             },
-            watch_items: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  symbol: { type: "string" },
-                  reason: { type: "string", description: "지금 왜 주목해야 하는지" },
-                  basis: { type: "string", description: "근거 출처 (룰/노트/과거 분석/이벤트)" },
-                },
-                required: ["symbol", "reason", "basis"],
-              },
-              description: "0~3개. 억지로 만들지 말 것",
-            },
+            required: ["symbol", "summary"],
           },
-          required: ["market_summary", "stock_sections", "watch_items"],
+        },
+        watch_items: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              symbol: { type: "string" },
+              reason: { type: "string", description: "지금 왜 주목해야 하는지" },
+              basis: { type: "string", description: "근거 출처 (룰/노트/과거 분석/이벤트)" },
+            },
+            required: ["symbol", "reason", "basis"],
+          },
+          description: "0~3개. 억지로 만들지 말 것",
         },
       },
-    ],
-    tool_choice: { type: "tool", name: "submit_briefing" },
+      required: ["market_summary", "stock_sections", "watch_items"],
+    },
   });
 
-  const toolUse = msg.content.find((c) => c.type === "tool_use");
-  if (!toolUse || toolUse.type !== "tool_use") throw new Error("AI 응답에 브리핑이 없습니다");
-  return BriefingSchema.parse(toolUse.input);
+  return BriefingSchema.parse(result);
 }

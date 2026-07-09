@@ -1,7 +1,9 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
+import { llmJson } from "./llm";
 import type { NoteRow } from "@/lib/db/queries/notes";
 import type { RuleResult } from "@/lib/rules";
+
+export { hasAiKey, aiProvider } from "./llm";
 
 export const AnalysisSchema = z.object({
   verdict: z.enum(["매수검토", "관망", "회피"]),
@@ -20,10 +22,6 @@ export interface AnalysisContext {
   ruleResults: RuleResult[];
   newsHeadlines: Array<{ headline: string; source: string | null }>;
   notes: NoteRow[];
-}
-
-export function hasAiKey(): boolean {
-  return Boolean(process.env.ANTHROPIC_API_KEY);
 }
 
 /** 키가 없을 때: 룰 평가 기반 모의 분석 (DB 저장 안 함, UI 흐름 테스트용) */
@@ -50,8 +48,6 @@ export function mockAnalysis(ctx: AnalysisContext): AnalysisResult {
 }
 
 export async function runAnalysis(ctx: AnalysisContext): Promise<AnalysisResult> {
-  const client = new Anthropic(); // ANTHROPIC_API_KEY 자동 사용
-
   const notesBlock = ctx.notes.length
     ? ctx.notes.map((n) => `[note-${n.id}] ${n.title}\n${n.content}`).join("\n\n")
     : "(등록된 원칙 없음 — 일반적 기준으로 분석하되 reasons에 그 사실을 명시하라)";
@@ -80,37 +76,28 @@ ${ctx.newsHeadlines.map((n) => `- ${n.headline} (${n.source ?? ""})`).join("\n")
 
 위 데이터를 나의 원칙으로 평가해 submit_analysis 도구로 제출하라.`;
 
-  const msg = await client.messages.create({
-    model: "claude-sonnet-4-5",
-    max_tokens: 2000,
+  const result = await llmJson({
     system,
-    messages: [{ role: "user", content: user }],
-    tools: [
-      {
-        name: "submit_analysis",
-        description: "종목 분석 결과 제출",
-        input_schema: {
-          type: "object" as const,
-          properties: {
-            verdict: { type: "string", enum: ["매수검토", "관망", "회피"] },
-            confidence: { type: "integer", minimum: 1, maximum: 5 },
-            reasons: { type: "array", items: { type: "string" }, description: "판단 근거 3~5개" },
-            cited_notes: { type: "array", items: { type: "string" }, description: "인용한 노트 ID들 (note-N 형식)" },
-            risks: { type: "array", items: { type: "string" } },
-            challenges: {
-              type: "array",
-              items: { type: "string" },
-              description: "사용자의 원칙 자체에 대한 반론. 없으면 빈 배열",
-            },
-          },
-          required: ["verdict", "confidence", "reasons", "cited_notes", "risks", "challenges"],
+    user,
+    schemaName: "submit_analysis",
+    maxTokens: 2000,
+    schema: {
+      type: "object",
+      properties: {
+        verdict: { type: "string", enum: ["매수검토", "관망", "회피"] },
+        confidence: { type: "integer", minimum: 1, maximum: 5 },
+        reasons: { type: "array", items: { type: "string" }, description: "판단 근거 3~5개" },
+        cited_notes: { type: "array", items: { type: "string" }, description: "인용한 노트 ID들 (note-N 형식)" },
+        risks: { type: "array", items: { type: "string" } },
+        challenges: {
+          type: "array",
+          items: { type: "string" },
+          description: "사용자의 원칙 자체에 대한 반론. 없으면 빈 배열",
         },
       },
-    ],
-    tool_choice: { type: "tool", name: "submit_analysis" }, // JSON 강제 — 파싱 실패 원천 차단
+      required: ["verdict", "confidence", "reasons", "cited_notes", "risks", "challenges"],
+    },
   });
 
-  const toolUse = msg.content.find((c) => c.type === "tool_use");
-  if (!toolUse || toolUse.type !== "tool_use") throw new Error("AI 응답에 분석 결과가 없습니다");
-  return AnalysisSchema.parse(toolUse.input);
+  return AnalysisSchema.parse(result);
 }

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { hasAiKey } from "@/lib/ai/analyze";
+import { llmJson } from "@/lib/ai/llm";
 import { getDb } from "@/lib/db";
 import { notes } from "@/lib/db/schema";
 import { METRIC_LABELS } from "@/lib/rules";
@@ -44,53 +44,38 @@ export async function POST(req: Request) {
       });
     }
 
-    const client = new Anthropic();
-    const msg = await client.messages.create({
-      model: "claude-sonnet-4-5",
-      max_tokens: 1000,
+    const result = await llmJson({
       system: `사용자의 투자 노트를 정량 스크리닝 룰로 변환하라.
 사용 가능한 지표: ${Object.entries(METRIC_LABELS).map(([k, v]) => `${k}(${v})`).join(", ")}.
 노트가 정량화 불가능한 내용이면 possible=false.
 정성적 원칙 중 룰에 못 담은 부분은 note에 명시하라. 보수적으로 변환하라. 한국어.`,
-      messages: [
-        {
-          role: "user",
-          content: `## 노트\n제목: ${note.title}\n\n${note.content}\n\n이 노트를 룰로 변환해 submit_rule로 제출하라.`,
-        },
-      ],
-      tools: [
-        {
-          name: "submit_rule",
-          description: "룰 변환 제안 제출",
-          input_schema: {
-            type: "object" as const,
-            properties: {
-              possible: { type: "boolean" },
-              name: { type: "string", description: "룰 이름 (노트 제목 기반, 간결하게)" },
-              conditions: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    metric: { type: "string", enum: ["per", "pbr", "eps", "roe", "debtToEquity", "dividendYield"] },
-                    op: { type: "string", enum: ["<", "<=", ">", ">="] },
-                    value: { type: "number" },
-                  },
-                  required: ["metric", "op", "value"],
-                },
+      user: `## 노트\n제목: ${note.title}\n\n${note.content}\n\n이 노트를 룰로 변환해 submit_rule로 제출하라.`,
+      schemaName: "submit_rule",
+      maxTokens: 1000,
+      schema: {
+        type: "object",
+        properties: {
+          possible: { type: "boolean" },
+          name: { type: "string", description: "룰 이름 (노트 제목 기반, 간결하게)" },
+          conditions: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                metric: { type: "string", enum: ["per", "pbr", "eps", "roe", "debtToEquity", "dividendYield"] },
+                op: { type: "string", enum: ["<", "<=", ">", ">="] },
+                value: { type: "number" },
               },
-              note: { type: "string" },
+              required: ["metric", "op", "value"],
             },
-            required: ["possible", "name", "conditions", "note"],
           },
+          note: { type: "string" },
         },
-      ],
-      tool_choice: { type: "tool", name: "submit_rule" },
+        required: ["possible", "name", "conditions", "note"],
+      },
     });
 
-    const toolUse = msg.content.find((c) => c.type === "tool_use");
-    if (!toolUse || toolUse.type !== "tool_use") throw new Error("AI 응답 없음");
-    return NextResponse.json({ proposal: ProposalSchema.parse(toolUse.input), isMock: false });
+    return NextResponse.json({ proposal: ProposalSchema.parse(result), isMock: false });
   } catch (e) {
     console.error("note-to-rule 실패:", e);
     return NextResponse.json({ error: e instanceof Error ? e.message : "변환 실패" }, { status: 500 });

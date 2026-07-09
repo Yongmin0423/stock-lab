@@ -9,11 +9,15 @@ export default async function SettingsPage() {
   if (!hasDb()) return <DbSetupNotice />;
   const rules = await listRules();
 
+  const { aiProvider } = await import("@/lib/ai/llm");
+  const active = aiProvider();
   const keys = [
     { name: "Finnhub (미국 시세)", set: Boolean(process.env.FINNHUB_API_KEY) },
-    { name: "Anthropic (AI 분석)", set: Boolean(process.env.ANTHROPIC_API_KEY) },
-    { name: "KIS (한국 시세, M4)", set: Boolean(process.env.KIS_APP_KEY) },
-    { name: "네이버 (한국 뉴스, M4)", set: Boolean(process.env.NAVER_CLIENT_ID) },
+    { name: `Anthropic (AI)${active === "anthropic" ? " — 사용 중" : ""}`, set: Boolean(process.env.ANTHROPIC_API_KEY) },
+    { name: `OpenAI (AI)${active === "openai" ? " — 사용 중" : ""}`, set: Boolean(process.env.OPENAI_API_KEY) },
+    { name: "KIS (한국 시세)", set: Boolean(process.env.KIS_APP_KEY) },
+    { name: "네이버 (한국 뉴스)", set: Boolean(process.env.NAVER_CLIENT_ID) },
+    { name: "DART (한국 재무 보강)", set: Boolean(process.env.DART_API_KEY) },
   ];
 
   return (
