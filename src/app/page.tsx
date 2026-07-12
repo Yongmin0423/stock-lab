@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { DbSetupNotice } from "@/components/db-setup-notice";
 import { EmptyState } from "@/components/empty-state";
+import { RefreshQuotesButton } from "@/components/refresh-quotes-button";
 import { SearchDialog } from "@/components/search-dialog";
 import { StockCard } from "@/components/stock-card";
 import { hasDb } from "@/lib/db";
@@ -100,8 +101,9 @@ export default async function Dashboard() {
         </Link>
       )}
 
-      <div className="mb-4 flex items-center">
+      <div className="mb-4 flex items-center gap-2">
         <SearchDialog existing={symbols} />
+        <RefreshQuotesButton />
       </div>
 
       {hasMock && (
