@@ -49,7 +49,7 @@
 
 1. GitHub repo 생성 → push (`.env.local`은 gitignore 확인됨)
 2. vercel.com → Import Project → 환경변수 전부 등록 (DATABASE_URL, FINNHUB, ANTHROPIC, KIS×3, NAVER×2)
-3. **접근 보호** (공개 URL에서 내 API 비용 방어): `src/middleware.ts`에 Basic Auth ~15줄 + `BASIC_AUTH_PASSWORD` env
+3. **접근 보호** (공개 URL에서 내 API 비용 방어): 로그인 화면 + 서명 쿠키 인증, `AUTH_PASSWORD`·`AUTH_SECRET` env
 4. PWA: `public/manifest.json` + 아이콘, layout에 메타 연결 → 폰 홈 화면 추가
 5. 모바일 레이아웃 점검 (대시보드·상세·노트)
 6. **최종 검증 = §0 DoD 시나리오**: 폰에서 종목 추가 → 상세 확인 → 노트 작성 → AI 분석 → 노트 수정 → 재분석 → 결과가 달라지는지
@@ -287,7 +287,8 @@ KIS_ENV=paper|real       # 모의/실전
 NAVER_CLIENT_ID=
 NAVER_CLIENT_SECRET=
 ANTHROPIC_API_KEY=
-BASIC_AUTH_PASSWORD=     # M8
+AUTH_PASSWORD=           # M8 로그인 비밀번호
+AUTH_SECRET=             # M8 쿠키 서명값 (openssl rand -base64 32)
 ```
 
 ---

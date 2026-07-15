@@ -1,27 +1,23 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth";
 
 /**
- * Basic Auth (배포용 접근 보호 — 내 API 비용 방어)
- * BASIC_AUTH_PASSWORD 미설정 시 통과 (로컬 개발)
- * 아이디: 아무거나 / 비밀번호: BASIC_AUTH_PASSWORD
+ * 개인용 쿠키 인증. 두 환경변수가 모두 없으면 로컬 개발을 위해 통과한다.
+ * 하나만 설정된 경우에는 실수로 보호가 풀리지 않도록 요청을 차단한다.
  */
-export function middleware(req: NextRequest) {
-  const password = process.env.BASIC_AUTH_PASSWORD;
-  if (!password) return NextResponse.next();
-
-  // Vercel cron은 Authorization: Bearer CRON_SECRET으로 통과
-  const auth = req.headers.get("authorization") ?? "";
+export async function middleware(req: NextRequest) {
   if (req.nextUrl.pathname.startsWith("/api/cron/")) return NextResponse.next();
 
-  if (auth.startsWith("Basic ")) {
-    const [, pass] = atob(auth.slice(6)).split(":");
-    if (pass === password) return NextResponse.next();
-  }
+  const password = process.env.AUTH_PASSWORD;
+  const secret = process.env.AUTH_SECRET;
+  if (!password && !secret) return NextResponse.next();
+  if (req.nextUrl.pathname === "/login") return NextResponse.next();
+  if (!password || !secret) return new NextResponse("AUTH_PASSWORD와 AUTH_SECRET 설정이 필요합니다", { status: 500 });
 
-  return new NextResponse("인증 필요", {
-    status: 401,
-    headers: { "WWW-Authenticate": 'Basic realm="StockLab"' },
-  });
+  const token = req.cookies.get(SESSION_COOKIE)?.value;
+  if (await verifySessionToken(token, secret)) return NextResponse.next();
+
+  return NextResponse.redirect(new URL("/login", req.url));
 }
 
 export const config = {

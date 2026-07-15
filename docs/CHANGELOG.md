@@ -1,3 +1,8 @@
+### 2026-07-15
+- **개인용 로그인 화면과 쿠키 인증** — `src/lib/auth.ts`, `src/app/login/page.tsx`, `src/middleware.ts`, `docs/연결_가이드.md`, `docs/MVP_구현계획서.md`
+  - 원인/이유: Basic Auth는 별도 화면이 없고 배포 URL을 아는 사용자의 접근을 앱 UI 안에서 제어하기 어려웠다.
+  - 수정: 비밀번호 로그인 화면, 만료 시각을 포함한 HMAC 서명 쿠키, 전체 경로 인증 미들웨어를 추가하고 배포 환경변수 안내를 갱신했다.
+
 ### 2026-07-13
 - **Watchlist 자연어 질문 기능** — `src/app/api/ask-market/route.ts`, `src/components/market-question.tsx`, `src/app/page.tsx`
   - 원인/이유: 앱이 이미 불러온 종목 시세에서 상승·하락 종목을 자연어로 확인할 수 있는 경로가 없었다.
