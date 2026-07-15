@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { DbSetupNotice } from "@/components/db-setup-notice";
 import { EmptyState } from "@/components/empty-state";
+import { MarketQuestion } from "@/components/market-question";
 import { RefreshQuotesButton } from "@/components/refresh-quotes-button";
 import { SearchDialog } from "@/components/search-dialog";
 import { StockCard } from "@/components/stock-card";
@@ -105,6 +106,8 @@ export default async function Dashboard() {
         <SearchDialog existing={symbols} />
         <RefreshQuotesButton />
       </div>
+
+      {quotes.length > 0 && <MarketQuestion />}
 
       {hasMock && (
         <div className="mb-4 rounded-xl border border-[rgba(217,166,63,0.4)] bg-[rgba(217,166,63,0.08)] px-4 py-3 text-sm text-[var(--gold)]">
