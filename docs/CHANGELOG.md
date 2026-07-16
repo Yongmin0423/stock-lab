@@ -1,4 +1,22 @@
 ### 2026-07-16
+
+- **발굴 상세 진입 시 접두어 없는 심볼 오류 수정** — `src/lib/discover-run.ts`, `src/lib/providers/types.ts`, `tests/parse-symbol.test.mjs`
+  - AI가 `US:VZ` 대신 `VZ`를 반환해 watchlist 저장 후 상세 페이지에서 심볼 파싱 오류가 발생했음
+  - 발굴 결과를 실제 후보의 정규 심볼로 치환하고, 이미 저장된 접두어 없는 미국·한국 심볼도 파서에서 호환
+
+- **발굴 추천 종목 상세 이동 연결** — `src/components/discover-panel.tsx`
+  - 추천 기업명이 클릭되지 않아 차트·재무·뉴스·AI 분석을 확인할 수 없었음
+  - 기업명 클릭 시 watchlist 등록 후 기존 종목 상세 페이지로 이동하도록 연결
+
+- **인증 쿠키 만료 1일로 단축** — `src/lib/auth.ts`
+  - 개인용 금융 앱에서 30일간 유지되는 세션이 너무 길어 보안상 노출 범위를 줄일 필요가 있었음
+  - 세션 토큰과 인증 쿠키의 최대 유효 시간을 24시간으로 변경
+- **PWA 홈 화면 설치 보완** — `public/manifest.json`, `public/icon.svg`, `public/icon-192.png`, `public/icon-512.png`, `src/app/layout.tsx`, `src/middleware.ts`
+  - 원인/이유: standalone manifest는 있었지만 설치에 필요한 크기별 앱 아이콘과 iOS 웹앱 메타데이터가 없었다.
+  - 수정: 앱 아이콘, manifest 아이콘·scope, Apple Web App 메타데이터를 추가하고 아이콘 파일을 인증 예외 처리해 홈 화면 실행 시 독립 앱처럼 열리게 했다.
+- **대시보드 질문 리서치 컨텍스트 확장** — `src/app/api/ask-market/route.ts`, `src/components/market-question.tsx`
+  - 원인/이유: 질문 기능이 현재가와 당일 등락률만 참고해 분석형 질문에도 답변이 지나치게 단순했다.
+  - 수정: DB에 저장된 재무, 30일 가격 요약, 뉴스, 룰 평가, 투자 노트, 최근 AI 분석을 함께 제공하고 분석 질문에는 근거와 데이터 한계를 설명하도록 변경했다.
 - **Vercel 의존성 빌드 허용** — `pnpm-workspace.yaml`
   - 원인/이유: pnpm이 esbuild와 sharp의 설치 스크립트를 미검토 상태로 차단해 Vercel 배포가 `ERR_PNPM_IGNORED_BUILDS`로 종료됐다.
   - 수정: 필요한 두 패키지의 빌드 스크립트만 명시적으로 허용했다.

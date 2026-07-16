@@ -22,5 +22,5 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   // 정적 리소스 제외 전부 보호
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|manifest.json).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|manifest.json|icon.svg|icon-192.png|icon-512.png).*)"],
 };

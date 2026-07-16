@@ -79,8 +79,13 @@ export async function generateDiscovery(): Promise<DiscoveryOutput> {
 
   const notes = await listNotes();
   const result = hasAiKey() ? await runDiscover(top, notes.slice(0, 8)) : mockDiscover(top);
-  const nameOf = (sym: string) => universe.find((u) => u.symbol === sym)?.name ?? sym;
-  const picks = result.picks.sort((a, b) => b.fit_score - a.fit_score).map((p) => ({ ...p, name: nameOf(p.symbol) }));
+  const candidatesBySymbol = new Map(top.flatMap((c) => [[c.symbol, c], [c.symbol.split(":")[1], c]]));
+  const picks = result.picks
+    .sort((a, b) => b.fit_score - a.fit_score)
+    .flatMap((p) => {
+      const candidate = candidatesBySymbol.get(p.symbol);
+      return candidate ? [{ ...p, symbol: candidate.symbol, name: candidate.name }] : [];
+    });
 
   if (hasAiKey()) {
     const { insertDiscovery } = await import("@/lib/db/queries/discoveries");

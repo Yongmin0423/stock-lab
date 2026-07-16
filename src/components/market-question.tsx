@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 
-type Answer = { answer: string; citedSymbols: string[]; asOf: string; hasMock: boolean };
+type Answer = { answer: string; citedSymbols: string[]; contextUsed: string[]; asOf: string; hasMock: boolean };
 
 const EXAMPLES = ["오늘 가장 많이 오른 종목은?", "하락한 종목만 알려줘", "등락률이 2% 이상인 종목은?"];
 
@@ -74,6 +74,7 @@ export function MarketQuestion() {
             {result.citedSymbols.length > 0 && ` · 근거: ${result.citedSymbols.join(", ")}`}
             {result.hasMock && " · 모의 시세 포함"}
           </div>
+          <div className="mt-1 text-[11px] text-[var(--text-faint)]">참고 데이터: {result.contextUsed.join(" · ")}</div>
         </div>
       )}
     </section>

@@ -55,8 +55,11 @@ export interface MarketDataProvider {
   searchSymbol(query: string): Promise<SymbolInfo[]>;
 }
 
-/** "US:AAPL" → { market: "US", code: "AAPL" } */
+/** "US:AAPL" → { market: "US", code: "AAPL" }; 기존 접두어 없는 심볼도 호환 */
 export function parseSymbol(full: string): { market: Market; code: string } {
+  if (/^\d{6}$/.test(full)) return { market: "KR", code: full };
+  if (/^[A-Z][A-Z0-9.-]{0,9}$/.test(full)) return { market: "US", code: full };
+
   const [market, code] = full.split(":");
   if ((market !== "US" && market !== "KR") || !code) {
     throw new Error(`잘못된 심볼 형식: ${full} (예: "US:AAPL", "KR:005930")`);

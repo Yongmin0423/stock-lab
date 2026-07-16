@@ -54,6 +54,19 @@ export function DiscoverPanel({ initial, watchlist }: { initial: Result | null; 
     });
   }
 
+  function openDetail(p: Pick, inList: boolean) {
+    if (inList) {
+      router.push(`/stock/${encodeURIComponent(p.symbol)}`);
+      return;
+    }
+
+    const market = p.symbol.startsWith("KR:") ? ("KR" as const) : ("US" as const);
+    startTransition(async () => {
+      await addStockAction(p.symbol, p.name, market);
+      router.push(`/stock/${encodeURIComponent(p.symbol)}`);
+    });
+  }
+
   return (
     <div>
       <div className="flex items-center gap-3">
@@ -91,7 +104,15 @@ export function DiscoverPanel({ initial, watchlist }: { initial: Result | null; 
                 return (
                   <div key={p.symbol} className="rounded-xl border border-[rgba(217,166,63,0.35)] bg-[var(--surface)] p-4">
                     <div className="flex flex-wrap items-center gap-3">
-                      <span className="font-bold">{p.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => openDetail(p, inList)}
+                        disabled={pending}
+                        className="font-bold hover:text-[var(--accent)] hover:underline disabled:opacity-50"
+                        title="종목 상세 보기"
+                      >
+                        {p.name}
+                      </button>
                       <span className="text-xs text-[var(--text-faint)]">{p.symbol.replace(":", " · ")}</span>
                       <span className="rounded-full bg-[rgba(217,166,63,0.12)] px-2.5 py-0.5 text-xs font-bold text-[var(--gold)]">
                         적합도 {p.fit_score}/5

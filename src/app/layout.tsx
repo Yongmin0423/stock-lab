@@ -5,6 +5,15 @@ export const metadata: Metadata = {
   title: "StockLab",
   description: "내 투자 공부가 AI의 판단 기준이 되는 개인 리서치 대시보드",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icon-192.png",
+    apple: "/icon-192.png",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "StockLab",
+  },
 };
 
 export const viewport = {
