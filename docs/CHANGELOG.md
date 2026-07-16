@@ -1,3 +1,8 @@
+### 2026-07-16
+- **Vercel 의존성 빌드 허용** — `pnpm-workspace.yaml`
+  - 원인/이유: pnpm이 esbuild와 sharp의 설치 스크립트를 미검토 상태로 차단해 Vercel 배포가 `ERR_PNPM_IGNORED_BUILDS`로 종료됐다.
+  - 수정: 필요한 두 패키지의 빌드 스크립트만 명시적으로 허용했다.
+
 ### 2026-07-15
 - **개인용 로그인 화면과 쿠키 인증** — `src/lib/auth.ts`, `src/app/login/page.tsx`, `src/middleware.ts`, `docs/연결_가이드.md`, `docs/MVP_구현계획서.md`
   - 원인/이유: Basic Auth는 별도 화면이 없고 배포 URL을 아는 사용자의 접근을 앱 UI 안에서 제어하기 어려웠다.
