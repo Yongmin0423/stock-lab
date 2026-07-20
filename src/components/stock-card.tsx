@@ -74,7 +74,11 @@ export function StockCard({
       )}
 
       <div className="mt-2 text-[11px] text-[var(--text-faint)]">
-        {quote.asOf.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })} 기준
+        {quote.asOf.toLocaleTimeString("ko-KR", {
+          timeZone: "Asia/Seoul",
+          hour: "2-digit",
+          minute: "2-digit",
+        })} 기준
         {quote.isMock && " · 모의 데이터"}
       </div>
     </div>
