@@ -34,7 +34,7 @@ export default async function BriefingPage({ searchParams }: { searchParams: Pro
         <>
           <div className="mb-4 flex items-center gap-3 text-sm text-[var(--text-dim)]">
             <span className="font-bold text-[var(--text)]">{SLOT_LABEL[current.slot]}</span>
-            {new Date(current.createdAt).toLocaleString("ko-KR")} 생성
+            {new Date(current.createdAt).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })} 생성
           </div>
 
           {/* 시장 요약 */}
@@ -112,7 +112,11 @@ export default async function BriefingPage({ searchParams }: { searchParams: Pro
                     : "border-[var(--border)] text-[var(--text-dim)] hover:border-[var(--text-faint)]"
                 }`}
               >
-                {new Date(b.createdAt).toLocaleDateString("ko-KR", { month: "numeric", day: "numeric" })}{" "}
+                {new Date(b.createdAt).toLocaleDateString("ko-KR", {
+                  timeZone: "Asia/Seoul",
+                  month: "numeric",
+                  day: "numeric",
+                })}{" "}
                 {SLOT_LABEL[b.slot]}
               </Link>
             ))}

@@ -25,10 +25,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ko">
       <body>
         <header className="sticky top-0 z-10 flex h-14 items-center gap-6 border-b border-[var(--border)] bg-[rgba(14,17,22,0.92)] px-6 backdrop-blur">
-          <div className="text-base font-extrabold tracking-tight">
+          <div className="shrink-0 text-base font-extrabold tracking-tight">
             Stock<span className="text-[var(--accent)]">Lab</span>
           </div>
-          <nav className="flex gap-1 text-sm text-[var(--text-dim)]">
+          <nav className="flex min-w-0 gap-1 overflow-x-auto whitespace-nowrap text-sm text-[var(--text-dim)]">
             <a href="/" className="rounded-lg px-3 py-1.5 hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
               대시보드
             </a>
