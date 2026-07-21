@@ -1,5 +1,9 @@
 ### 2026-07-21
 
+- **발굴 전체 캐시 검사와 분할 갱신** — `src/lib/discover-run.ts`, `src/lib/screening-refresh.ts`, `src/lib/db/queries/screening.ts`, `src/lib/db/schema.ts`, `src/app/api/cron/refresh-screening/route.ts`, `vercel.json`
+  - 원인/이유: 발굴할 때마다 고정 50종을 외부 API로 다시 조회해 범위가 좁고 실행 시간이 길었다.
+  - 수정: 재무 데이터를 별도 DB에 30일간 캐시하고 브리핑 전 오래된 데이터 50종씩 갱신하며, 발굴은 매번 캐시된 전체 종목을 빠르게 룰 검사하도록 분리했다.
+
 - **AI 판정 용어 질문 즉시 응답** — `src/app/api/ask-market/route.ts`, `src/lib/verdict-explanation.ts`, `tests/verdict-explanation.test.mjs`
   - 원인/이유: `매수검토·관망·회피` 의미 질문도 전체 시장 데이터와 AI를 호출해 불필요하게 느리고 시간 초과가 발생했다.
   - 수정: 판정 용어 설명은 DB와 AI를 거치지 않고 즉시 반환한다.

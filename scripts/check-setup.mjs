@@ -23,7 +23,7 @@ process.env.NAVER_CLIENT_ID ? ok("NAVER 키 설정됨") : warn("NAVER 키 없음
 console.log("\n[2] DB 연결 + 테이블");
 const sql = postgres(process.env.DATABASE_URL, { prepare: false, connect_timeout: 10 });
 const REQUIRED = ["stocks", "quotes", "candles", "financials", "news", "notes", "analyses", "kis_tokens",
-                  "rules", "briefings", "stocks_master", "discoveries"];
+                  "rules", "briefings", "stocks_master", "discoveries", "screening_fundamentals"];
 try {
   const rows = await sql`SELECT table_name FROM information_schema.tables WHERE table_schema='public'`;
   const have = new Set(rows.map((r) => r.table_name));

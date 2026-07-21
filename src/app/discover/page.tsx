@@ -20,7 +20,7 @@ export default async function DiscoverPage() {
         </span>
       </div>
       <p className="mb-5 text-xs text-[var(--text-faint)]">
-        예측이 아니라 "내 원칙 적합도" 평가입니다. 유니버스: 미국 대형주 30 + 한국 대형주 20 (KIS 키 필요)
+        예측이 아니라 "내 원칙 적합도" 평가입니다. 캐시된 전체 종목을 검사하고 오래된 재무 데이터는 배치로 갱신합니다.
       </p>
       <DiscoverPanel
         initial={

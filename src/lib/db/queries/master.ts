@@ -6,7 +6,7 @@ import { UNIVERSE_US } from "@/lib/universe";
 const PAGE_SIZE = 50;
 
 /** 미국 대형주 시드 (1회) — 전체 종목 목록에 US도 보이도록 */
-async function seedUsIfEmpty() {
+export async function seedUsIfEmpty() {
   const db = getDb();
   const [{ c }] = await db
     .select({ c: sql<number>`count(*)::int` })

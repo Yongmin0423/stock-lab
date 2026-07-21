@@ -163,3 +163,18 @@ export const stocksMaster = pgTable("stocks_master", {
   name: text("name").notNull(),
   market: text("market", { enum: ["US", "KR"] }).notNull().default("KR"),
 });
+
+/** 넓은 발굴 유니버스용 재무 캐시 — watchlist와 독립 */
+export const screeningFundamentals = pgTable("screening_fundamentals", {
+  symbol: text("symbol").primaryKey(),
+  name: text("name").notNull(),
+  market: text("market", { enum: ["US", "KR"] }).notNull(),
+  per: real("per"),
+  pbr: real("pbr"),
+  eps: real("eps"),
+  roe: real("roe"),
+  debtToEquity: real("debt_to_equity"),
+  dividendYield: real("dividend_yield"),
+  marketCap: real("market_cap"),
+  fetchedAt: timestamp("fetched_at").notNull(),
+});

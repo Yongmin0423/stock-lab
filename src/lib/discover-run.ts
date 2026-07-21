@@ -2,12 +2,9 @@ import { hasAiKey } from "@/lib/ai/analyze";
 import { mockDiscover, runDiscover, type DiscoverCandidate } from "@/lib/ai/discover";
 import { listNotes } from "@/lib/db/queries/notes";
 import { listEnabledRules } from "@/lib/db/queries/rules";
+import { listScreeningFundamentals } from "@/lib/db/queries/screening";
 import { getWatchlist } from "@/lib/db/queries/stocks";
-import { providerFor } from "@/lib/providers/factory";
-import { hasKisKeys } from "@/lib/providers/kis";
-import { parseSymbol } from "@/lib/providers/types";
 import { evaluateRules } from "@/lib/rules";
-import { UNIVERSE_KR, UNIVERSE_US } from "@/lib/universe";
 
 export interface DiscoveryOutput {
   picks: Array<{ symbol: string; name: string; fit_score: number; reason: string; cited: string; caution: string }>;
@@ -28,39 +25,46 @@ export async function generateDiscovery(): Promise<DiscoveryOutput> {
     throw new Error("활성화된 룰이 없어요 — 설정에서 룰을 먼저 만드세요");
   }
 
-  const watchlist = new Set((await getWatchlist()).map((s) => s.symbol));
-  const universe = [...UNIVERSE_US, ...(hasKisKeys() ? UNIVERSE_KR : [])].filter((u) => !watchlist.has(u.symbol));
+  const [watchlistRows, cached] = await Promise.all([getWatchlist(), listScreeningFundamentals()]);
+  const watchlist = new Set(watchlistRows.map((s) => s.symbol));
+  const universe = cached.filter(
+    (u) =>
+      !watchlist.has(u.symbol) &&
+      [u.per, u.pbr, u.eps, u.roe, u.debtToEquity, u.dividendYield].some((value) => value != null),
+  );
+
+  if (universe.length === 0) {
+    return {
+      picks: [],
+      scannedCount: 0,
+      candidateCount: 0,
+      isMock: !hasAiKey(),
+      message: "스크리닝 데이터가 아직 없어요. 배포 후 갱신 cron이 종목 데이터를 순차적으로 채웁니다.",
+    };
+  }
 
   const candidates: DiscoverCandidate[] = [];
-  let scanned = 0;
   for (const u of universe) {
-    try {
-      const { code } = parseSymbol(u.symbol);
-      const f = await providerFor(u.symbol).getFundamentals(code);
-      const ruleResults = evaluateRules(
-        {
-          per: f.per ?? null,
-          pbr: f.pbr ?? null,
-          eps: f.eps ?? null,
-          roe: f.roe ?? null,
-          debtToEquity: f.debtToEquity ?? null,
-          dividendYield: f.dividendYield ?? null,
-        },
-        enabledRules,
-      );
-      scanned++;
-      const passedCount = ruleResults.filter((r) => r.passed).length;
-      if (passedCount > 0) {
-        candidates.push({
-          symbol: u.symbol,
-          name: u.name,
-          fundamentals: { per: f.per, pbr: f.pbr, roe: f.roe, debtToEquity: f.debtToEquity, dividendYield: f.dividendYield },
-          ruleResults,
-          passedCount,
-        });
-      }
-    } catch {
-      // 한 종목 실패 무시
+    const ruleResults = evaluateRules(
+      {
+        per: u.per,
+        pbr: u.pbr,
+        eps: u.eps,
+        roe: u.roe,
+        debtToEquity: u.debtToEquity,
+        dividendYield: u.dividendYield,
+      },
+      enabledRules,
+    );
+    const passedCount = ruleResults.filter((r) => r.passed).length;
+    if (passedCount > 0) {
+      candidates.push({
+        symbol: u.symbol,
+        name: u.name,
+        fundamentals: { per: u.per, pbr: u.pbr, eps: u.eps, roe: u.roe, debtToEquity: u.debtToEquity, dividendYield: u.dividendYield },
+        ruleResults,
+        passedCount,
+      });
     }
   }
 
@@ -70,7 +74,7 @@ export async function generateDiscovery(): Promise<DiscoveryOutput> {
   if (top.length === 0) {
     return {
       picks: [],
-      scannedCount: scanned,
+      scannedCount: universe.length,
       candidateCount: 0,
       isMock: !hasAiKey(),
       message: "룰을 통과한 종목이 없어요. 설정에서 룰 기준을 조정해보세요.",
@@ -89,8 +93,8 @@ export async function generateDiscovery(): Promise<DiscoveryOutput> {
 
   if (hasAiKey()) {
     const { insertDiscovery } = await import("@/lib/db/queries/discoveries");
-    await insertDiscovery({ picks, scannedCount: scanned, candidateCount: candidates.length });
+    await insertDiscovery({ picks, scannedCount: universe.length, candidateCount: candidates.length });
   }
 
-  return { picks, scannedCount: scanned, candidateCount: candidates.length, isMock: !hasAiKey() };
+  return { picks, scannedCount: universe.length, candidateCount: candidates.length, isMock: !hasAiKey() };
 }

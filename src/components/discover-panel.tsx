@@ -75,7 +75,7 @@ export function DiscoverPanel({ initial, watchlist }: { initial: Result | null; 
           disabled={loading}
           className="rounded-xl bg-[var(--accent)] px-5 py-2.5 text-sm font-bold text-white hover:brightness-110 disabled:opacity-50"
         >
-          {loading ? "유니버스 스캔 중… (1~2분 걸려요)" : "🔍 새로 발굴"}
+          {loading ? "전체 유니버스 검사 중…" : "🔍 새로 발굴"}
         </button>
         {result?.createdAt && (
           <span className="text-xs text-[var(--text-faint)]">
