@@ -1,5 +1,9 @@
 ### 2026-07-21
 
+- **AI 판정 용어 질문 즉시 응답** — `src/app/api/ask-market/route.ts`, `src/lib/verdict-explanation.ts`, `tests/verdict-explanation.test.mjs`
+  - 원인/이유: `매수검토·관망·회피` 의미 질문도 전체 시장 데이터와 AI를 호출해 불필요하게 느리고 시간 초과가 발생했다.
+  - 수정: 판정 용어 설명은 DB와 AI를 거치지 않고 즉시 반환한다.
+
 - **일반 AI 분석 모델을 Terra로 상향** — `src/lib/ai/llm.ts`
   - 원인/이유: `smart` tier가 구형 `gpt-4o`를 기본값으로 사용하고 있었다.
   - 수정: OpenAI `smart` 기본 모델을 `gpt-5.6-terra`로 변경하고 `fast`는 `gpt-4o-mini`로 유지했다.

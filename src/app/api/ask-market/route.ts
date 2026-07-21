@@ -7,6 +7,7 @@ import { listNotes } from "@/lib/db/queries/notes";
 import { listEnabledRules } from "@/lib/db/queries/rules";
 import { getDashboardExtras, getWatchlistWithQuotes } from "@/lib/db/queries/stocks";
 import { evaluateRules } from "@/lib/rules";
+import { explainVerdictQuestion } from "@/lib/verdict-explanation";
 
 export const maxDuration = 110;
 
@@ -19,6 +20,16 @@ export async function POST(req: Request) {
   try {
     const parsed = RequestSchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "질문은 1~500자로 입력해주세요" }, { status: 400 });
+    const verdictExplanation = explainVerdictQuestion(parsed.data.question);
+    if (verdictExplanation) {
+      return NextResponse.json({
+        answer: verdictExplanation,
+        citedSymbols: [],
+        contextUsed: ["AI 판정 기준"],
+        asOf: new Date(),
+        hasMock: false,
+      });
+    }
     if (!hasAiKey()) return NextResponse.json({ error: "AI API 키가 설정되지 않았습니다" }, { status: 503 });
 
     const quotes = await getWatchlistWithQuotes();
