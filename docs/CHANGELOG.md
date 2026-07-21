@@ -1,8 +1,16 @@
 ### 2026-07-21
 
+- **일반 AI 분석 모델을 Terra로 상향** — `src/lib/ai/llm.ts`
+  - 원인/이유: `smart` tier가 구형 `gpt-4o`를 기본값으로 사용하고 있었다.
+  - 수정: OpenAI `smart` 기본 모델을 `gpt-5.6-terra`로 변경하고 `fast`는 `gpt-4o-mini`로 유지했다.
+
+- **브리핑 전용 상위 AI 모델 적용** — `src/lib/ai/llm.ts`, `src/lib/ai/briefing.ts`
+  - 원인/이유: 브리핑이 일반 분석과 같은 `smart` 모델을 사용해 품질과 비용을 독립적으로 조정할 수 없었다.
+  - 수정: 브리핑 전용 tier를 추가하고 OpenAI 기본 모델을 `gpt-5.6-terra`, Anthropic 기본 모델을 기존 Sonnet으로 설정했다.
+
 - **대시보드 AI 질문 시간 초과 대응** — `src/app/api/ask-market/route.ts`, `src/components/market-question.tsx`
   - 원인/이유: 전체 Watchlist 리서치 컨텍스트와 AI 답변 생성이 기존 60초를 넘으면 Vercel 504 일반 텍스트 응답이 발생했다.
-  - 수정: AI 질문 실행 한도를 120초로 늘리고 504에는 분석 지연 안내를 표시한다.
+  - 수정: 질문용 뉴스·노트·최근 분석의 항목 수와 답변 길이를 줄이고 빠른 AI 모델을 사용한다. AI 호출은 60초에 중단하고 단계별 소요 시간을 기록하며, 함수는 프록시 제한보다 짧은 110초 안에 응답한다.
 
 - **종목 검색의 비JSON 오류 응답 처리** — `src/components/search-dialog.tsx`
   - 원인/이유: 검색 API 장애 시 일반 텍스트 응답을 JSON으로 파싱하면 원본과 무관한 구문 오류가 표시됐다.

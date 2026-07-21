@@ -8,18 +8,21 @@ import { listEnabledRules } from "@/lib/db/queries/rules";
 import { getDashboardExtras, getWatchlistWithQuotes } from "@/lib/db/queries/stocks";
 import { evaluateRules } from "@/lib/rules";
 
-export const maxDuration = 120;
+export const maxDuration = 110;
 
 const RequestSchema = z.object({ question: z.string().trim().min(1).max(500) });
 const AnswerSchema = z.object({ answer: z.string(), cited_symbols: z.array(z.string()) });
 
 export async function POST(req: Request) {
+  const startedAt = Date.now();
+  const timing = (stage: string) => console.info(`시장 질문 ${stage}: ${Date.now() - startedAt}ms`);
   try {
     const parsed = RequestSchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "질문은 1~500자로 입력해주세요" }, { status: 400 });
     if (!hasAiKey()) return NextResponse.json({ error: "AI API 키가 설정되지 않았습니다" }, { status: 503 });
 
     const quotes = await getWatchlistWithQuotes();
+    timing("시세 준비");
     if (quotes.length === 0) return NextResponse.json({ error: "Watchlist가 비어 있습니다" }, { status: 400 });
 
     const symbols = quotes.map((q) => q.symbol);
@@ -81,7 +84,7 @@ export async function POST(req: Request) {
         ),
         news: newsPage.rows
           .filter((item) => item.stockSymbol === q.symbol)
-          .slice(0, 3)
+          .slice(0, 2)
           .map((item) => ({
             headline: item.headline,
             source: item.source,
@@ -94,9 +97,9 @@ export async function POST(req: Request) {
           ? {
               verdict: latestAnalysis.verdict,
               confidence: latestAnalysis.confidence,
-              reasons: latestAnalysis.reasons?.slice(0, 3),
-              risks: latestAnalysis.risks?.slice(0, 3),
-              challenges: latestAnalysis.challenges?.slice(0, 2),
+              reasons: latestAnalysis.reasons?.slice(0, 2),
+              risks: latestAnalysis.risks?.slice(0, 2),
+              challenges: latestAnalysis.challenges?.slice(0, 1),
               createdAt: latestAnalysis.createdAt,
             }
           : null,
@@ -104,19 +107,21 @@ export async function POST(req: Request) {
     });
     const noteContext = notes
       .toSorted((a, b) => Number(b.relatedSymbols.some((symbol) => symbols.includes(symbol))) - Number(a.relatedSymbols.some((symbol) => symbols.includes(symbol))))
-      .slice(0, 8)
+      .slice(0, 4)
       .map((note) => ({
         id: note.id,
         title: note.title,
         tags: note.tags,
         relatedSymbols: note.relatedSymbols,
-        content: note.content.slice(0, 400),
+        content: note.content.slice(0, 250),
         updatedAt: note.updatedAt,
       }));
+    timing("컨텍스트 준비");
     const result = AnswerSchema.parse(
       await llmJson({
-        tier: "smart",
-        maxTokens: 2000,
+        tier: "fast",
+        maxTokens: 1000,
+        timeoutMs: 60_000,
         schemaName: "submit_market_answer",
         system: `너는 개인 주식 리서치 대시보드의 분석 도우미다.
 반드시 제공된 Watchlist 데이터와 투자 노트만 근거로 한국어로 답하라.
@@ -136,6 +141,7 @@ export async function POST(req: Request) {
         },
       }),
     );
+    timing("AI 응답");
     const validSymbols = new Set(rows.map((q) => q.symbol));
 
     return NextResponse.json({

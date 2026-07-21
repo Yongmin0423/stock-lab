@@ -94,6 +94,7 @@ ${ctx.stocks
 위 데이터로 브리핑을 작성해 submit_briefing 도구로 제출하라.`;
 
   const result = await llmJson({
+    tier: "briefing",
     system,
     user,
     schemaName: "submit_briefing",

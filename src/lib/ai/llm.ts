@@ -7,7 +7,7 @@
  * - OpenAI: response_format json_object + 스키마 프롬프트 주입 (결과는 호출부의 zod가 검증)
  */
 
-export type LlmTier = "smart" | "fast";
+export type LlmTier = "smart" | "fast" | "briefing";
 
 export function aiProvider(): "anthropic" | "openai" | null {
   const pref = process.env.AI_PROVIDER;
@@ -28,7 +28,8 @@ export interface LlmJsonOptions {
   schemaName: string;
   schema: Record<string, unknown>; // JSON Schema (object)
   maxTokens?: number;
-  tier?: LlmTier; // smart=Sonnet/GPT-4o급, fast=Haiku/mini급
+  tier?: LlmTier; // smart=일반 분석, fast=경량 작업, briefing=브리핑 전용
+  timeoutMs?: number;
 }
 
 export async function llmJson(opts: LlmJsonOptions): Promise<unknown> {
@@ -37,38 +38,47 @@ export async function llmJson(opts: LlmJsonOptions): Promise<unknown> {
   return provider === "anthropic" ? anthropicJson(opts) : openaiJson(opts);
 }
 
-async function anthropicJson({ system, user, schemaName, schema, maxTokens = 2000, tier = "smart" }: LlmJsonOptions) {
+async function anthropicJson({ system, user, schemaName, schema, maxTokens = 2000, tier = "smart", timeoutMs }: LlmJsonOptions) {
   const Anthropic = (await import("@anthropic-ai/sdk")).default;
   const client = new Anthropic();
   const model =
     tier === "fast"
       ? (process.env.ANTHROPIC_MODEL_FAST ?? "claude-haiku-4-5-20251001")
-      : (process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-5");
+      : tier === "briefing"
+        ? (process.env.ANTHROPIC_MODEL_BRIEFING ?? process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-5")
+        : (process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-5");
 
-  const msg = await client.messages.create({
-    model,
-    max_tokens: maxTokens,
-    system,
-    messages: [{ role: "user", content: user }],
-    tools: [
-      {
-        name: schemaName,
-        description: `${schemaName} 결과 제출`,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        input_schema: schema as any,
-      },
-    ],
-    tool_choice: { type: "tool", name: schemaName },
-  });
+  const msg = await client.messages.create(
+    {
+      model,
+      max_tokens: maxTokens,
+      system,
+      messages: [{ role: "user", content: user }],
+      tools: [
+        {
+          name: schemaName,
+          description: `${schemaName} 결과 제출`,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          input_schema: schema as any,
+        },
+      ],
+      tool_choice: { type: "tool", name: schemaName },
+    },
+    timeoutMs ? { timeout: timeoutMs, maxRetries: 0 } : undefined,
+  );
 
   const toolUse = msg.content.find((c) => c.type === "tool_use");
   if (!toolUse || toolUse.type !== "tool_use") throw new Error("AI 응답에 결과가 없습니다");
   return toolUse.input;
 }
 
-async function openaiJson({ system, user, schemaName, schema, maxTokens = 2000, tier = "smart" }: LlmJsonOptions) {
+async function openaiJson({ system, user, schemaName, schema, maxTokens = 2000, tier = "smart", timeoutMs }: LlmJsonOptions) {
   const model =
-    tier === "fast" ? (process.env.OPENAI_MODEL_FAST ?? "gpt-4o-mini") : (process.env.OPENAI_MODEL ?? "gpt-4o");
+    tier === "fast"
+      ? (process.env.OPENAI_MODEL_FAST ?? "gpt-4o-mini")
+      : tier === "briefing"
+        ? (process.env.OPENAI_MODEL_BRIEFING ?? "gpt-5.6-terra")
+        : (process.env.OPENAI_MODEL ?? "gpt-5.6-terra");
 
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -88,6 +98,7 @@ async function openaiJson({ system, user, schemaName, schema, maxTokens = 2000, 
         { role: "user", content: user },
       ],
     }),
+    signal: timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined,
   });
 
   const d = await res.json();
