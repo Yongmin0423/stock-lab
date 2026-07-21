@@ -24,6 +24,13 @@ export function MarketQuestion() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question }),
       });
+      if (!response.headers.get("content-type")?.includes("application/json")) {
+        throw new Error(
+          response.status === 504
+            ? "AI가 리서치 데이터를 분석하는 데 시간이 오래 걸렸어요. 잠시 후 다시 시도해주세요."
+            : `질문 서버 오류 (${response.status || "응답 형식 오류"})`,
+        );
+      }
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "질문 처리 실패");
       setResult(data);

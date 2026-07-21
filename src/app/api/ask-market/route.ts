@@ -8,7 +8,7 @@ import { listEnabledRules } from "@/lib/db/queries/rules";
 import { getDashboardExtras, getWatchlistWithQuotes } from "@/lib/db/queries/stocks";
 import { evaluateRules } from "@/lib/rules";
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 const RequestSchema = z.object({ question: z.string().trim().min(1).max(500) });
 const AnswerSchema = z.object({ answer: z.string(), cited_symbols: z.array(z.string()) });
