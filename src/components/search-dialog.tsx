@@ -9,6 +9,7 @@ export function SearchDialog({ existing }: { existing: string[] }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SymbolInfo[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -37,13 +38,25 @@ export function SearchDialog({ existing }: { existing: string[] }) {
   useEffect(() => {
     if (!query.trim()) {
       setResults([]);
+      setError("");
       return;
     }
     setLoading(true);
+    setError("");
     const t = setTimeout(async () => {
       try {
         const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+        if (!res.ok || !res.headers.get("content-type")?.includes("application/json")) {
+          throw new Error(
+            res.status === 504
+              ? "검색 서버 응답이 지연되고 있어요. 잠시 후 다시 시도해주세요."
+              : `검색 서버 오류 (${res.status || "응답 형식 오류"})`,
+          );
+        }
         setResults(await res.json());
+      } catch (e) {
+        setResults([]);
+        setError(e instanceof Error ? e.message : "검색 실패");
       } finally {
         setLoading(false);
       }
@@ -86,7 +99,8 @@ export function SearchDialog({ existing }: { existing: string[] }) {
             />
             <div className="max-h-80 overflow-y-auto p-2">
               {loading && <div className="px-3 py-4 text-sm text-[var(--text-faint)]">검색 중…</div>}
-              {!loading && query && results.length === 0 && (
+              {!loading && error && <div className="px-3 py-4 text-sm text-[var(--up)]">{error}</div>}
+              {!loading && !error && query && results.length === 0 && (
                 <div className="px-3 py-4 text-sm text-[var(--text-faint)]">
                   결과 없음 — 한국 종목이 안 나오면 `node scripts/load-krx-master.mjs` 실행 여부를 확인하세요
                 </div>
