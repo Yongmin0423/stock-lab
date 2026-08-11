@@ -13,10 +13,11 @@ export function RefreshQuotesButton() {
     setError("");
     try {
       const response = await fetch("/api/refresh-quotes", { method: "POST" });
-      if (!response.ok) throw new Error();
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "시세를 갱신하지 못했습니다");
       router.refresh();
-    } catch {
-      setError("시세를 갱신하지 못했습니다");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "시세를 갱신하지 못했습니다");
     } finally {
       setLoading(false);
     }
@@ -32,7 +33,7 @@ export function RefreshQuotesButton() {
       >
         {loading ? "시세 갱신 중…" : "↻ 시세 새로고침"}
       </button>
-      {error && <span className="text-xs text-[var(--up)]">{error}</span>}
+      {error && <span className="max-w-lg text-xs text-[var(--up)]">{error}</span>}
     </div>
   );
 }

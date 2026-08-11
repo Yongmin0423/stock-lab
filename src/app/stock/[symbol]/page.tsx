@@ -34,7 +34,11 @@ export default async function StockPage({ params }: { params: Promise<{ symbol: 
     );
   }
 
-  const quote = await getQuoteCached(symbol, stock.name);
+  const quoteFailureRef: { value: { message: string; usingCache: boolean } | null } = { value: null };
+  const quote = await getQuoteCached(symbol, stock.name, false, (message, usingCache) => {
+    quoteFailureRef.value = { message, usingCache };
+  });
+  const quoteFailure = quoteFailureRef.value;
   const fund = await getFundamentalsCached(symbol);
   const newsItems = await getNewsCached(symbol, stock.name);
   const relatedNotes = await findRelevantNotes(symbol, 4);
@@ -110,6 +114,13 @@ export default async function StockPage({ params }: { params: Promise<{ symbol: 
           {quote && ` · ${quote.asOf.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })} 기준`}
         </span>
       </div>
+
+      {quoteFailure && (
+        <div className="mb-4 rounded-xl border border-[rgba(240,68,82,0.4)] bg-[rgba(240,68,82,0.08)] px-4 py-3 text-sm text-[var(--up)]">
+          현재가 조회 실패: {quoteFailure.message}
+          {quoteFailure.usingCache && " — 마지막 저장값을 표시하고 있습니다."}
+        </div>
+      )}
 
       {/* 차트 */}
       <CandleChart symbol={symbol} />

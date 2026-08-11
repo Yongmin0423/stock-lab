@@ -1,6 +1,7 @@
 import { and, desc, eq, ilike } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { kisTokens, stocksMaster } from "@/lib/db/schema";
+import { parseOverseasDailyRows } from "./kis-overseas";
 import type { Candle, Fundamentals, MarketDataProvider, NewsItem, SymbolInfo } from "./types";
 
 /**
@@ -68,6 +69,48 @@ const n = (v: unknown): number | undefined => {
   const x = Number(v);
   return Number.isFinite(x) && x !== 0 ? x : undefined;
 };
+
+/** 미국 주식 일봉. 종목의 거래소 정보가 없으므로 미국 3개 거래소를 순서대로 확인한다. */
+export async function getUsDailyCandles(code: string, days: number): Promise<Candle[]> {
+  const cutoff = new Date(Date.now() - days * 86400e3).toISOString().slice(0, 10);
+  let lastError: unknown;
+
+  for (const exchange of ["NYS", "NAS", "AMS"]) {
+    let before = new Date().toISOString().slice(0, 10).replaceAll("-", "");
+    const candles: Candle[] = [];
+
+    try {
+      for (let page = 0; page < 5; page++) {
+        const d = await kisGet("/uapi/overseas-price/v1/quotations/dailyprice", "HHDFS76240000", {
+          AUTH: "",
+          EXCD: exchange,
+          SYMB: code,
+          GUBN: "0",
+          BYMD: before,
+          MODP: "1",
+        });
+        const batch = parseOverseasDailyRows(d.output2 ?? []);
+        if (batch.length === 0) break;
+        candles.push(...batch);
+
+        const oldest = batch.at(-1)!.date;
+        if (oldest <= cutoff) {
+          return candles.filter((c) => c.date >= cutoff).reverse();
+        }
+        const previousDay = new Date(`${oldest}T00:00:00Z`);
+        previousDay.setUTCDate(previousDay.getUTCDate() - 1);
+        before = previousDay.toISOString().slice(0, 10).replaceAll("-", "");
+      }
+      if (candles.length > 0) return candles.filter((c) => c.date >= cutoff).reverse();
+    } catch (e) {
+      lastError = e;
+      // 다른 미국 거래소에서 다시 조회
+    }
+  }
+
+  if (lastError instanceof Error) throw lastError;
+  throw new Error(`KIS 미국 일봉 데이터 없음: ${code}`);
+}
 
 /** KOSPI 지수 (시장 상태 바용). KIS 키 필요 */
 export async function getKospiIndex(): Promise<{ value: number; changePct: number } | null> {

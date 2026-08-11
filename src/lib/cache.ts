@@ -13,7 +13,12 @@ const QUOTE_TTL_MS = 2 * 60 * 1000;
  * - API 실패 시 낡은 캐시라도 반환 (장애 격리)
  * - 모의 데이터는 DB에 저장하지 않음 (키 설정 후 바로 실데이터로 전환되도록)
  */
-export async function getQuoteCached(symbol: string, name: string, force = false): Promise<Quote | null> {
+export async function getQuoteCached(
+  symbol: string,
+  name: string,
+  force = false,
+  onFailure?: (message: string, usingCache: boolean) => void,
+): Promise<Quote | null> {
   const db = getDb();
   const { market, code } = parseSymbol(symbol);
 
@@ -46,7 +51,8 @@ export async function getQuoteCached(symbol: string, name: string, force = false
         });
     }
     return { ...fresh, symbol, name };
-  } catch {
+  } catch (e) {
+    onFailure?.(e instanceof Error ? e.message : "시세 조회 실패", Boolean(cached));
     if (cached) {
       return {
         symbol,

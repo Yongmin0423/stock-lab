@@ -15,7 +15,8 @@ export function CandleChart({ symbol }: { symbol: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const [days, setDays] = useState<number>(90);
-  const [status, setStatus] = useState<"loading" | "ok" | "empty">("loading");
+  const [status, setStatus] = useState<"loading" | "ok" | "error">("loading");
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const el = containerRef.current;
@@ -47,13 +48,18 @@ export function CandleChart({ symbol }: { symbol: string }) {
 
     let cancelled = false;
     setStatus("loading");
+    setError("");
     fetch(`/api/candles?symbol=${encodeURIComponent(symbol)}&days=${days}`)
-      .then((r) => r.json())
-      .then((data: CandleDto[]) => {
-        if (cancelled || !Array.isArray(data)) return;
+      .then(async (r) => {
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error ?? `차트 조회 오류 (${r.status})`);
+        if (!Array.isArray(data)) throw new Error("잘못된 차트 응답");
+        return data as CandleDto[];
+      })
+      .then((data) => {
+        if (cancelled) return;
         if (data.length === 0) {
-          setStatus("empty");
-          return;
+          throw new Error("일봉 데이터가 없습니다.");
         }
         series.setData(
           data.map((c) => ({ time: c.date, open: c.open ?? c.close, high: c.high ?? c.close, low: c.low ?? c.close, close: c.close })),
@@ -61,7 +67,11 @@ export function CandleChart({ symbol }: { symbol: string }) {
         chart.timeScale().fitContent();
         setStatus("ok");
       })
-      .catch(() => !cancelled && setStatus("empty"));
+      .catch((e) => {
+        if (cancelled) return;
+        setError(e instanceof Error ? e.message : "일봉 조회 실패");
+        setStatus("error");
+      });
 
     const onResize = () => chart.applyOptions({ width: el.clientWidth });
     onResize();
@@ -96,8 +106,8 @@ export function CandleChart({ symbol }: { symbol: string }) {
       {status === "loading" && (
         <div className="py-4 text-center text-xs text-[var(--text-faint)]">차트 불러오는 중…</div>
       )}
-      {status === "empty" && (
-        <div className="py-4 text-center text-xs text-[var(--text-faint)]">일봉 데이터를 가져오지 못했어요.</div>
+      {status === "error" && (
+        <div className="py-4 text-center text-xs text-[var(--up)]">차트 조회 실패: {error}</div>
       )}
     </div>
   );

@@ -1,48 +1,25 @@
-import { stooqDailyCandles, syntheticCandles } from "./stooq";
+import { getUsDailyCandles } from "./kis";
 import type { Candle, Fundamentals, MarketDataProvider, NewsItem, SymbolInfo } from "./types";
 
 const BASE = "https://finnhub.io/api/v1";
-
-/** 키가 없을 때 쓰는 모의 시세 (가격에 약간의 랜덤 변동을 줘서 살아있는 느낌) */
-const MOCK_QUOTES: Record<string, { price: number; changePct: number }> = {
-  AAPL: { price: 248.12, changePct: -0.87 },
-  MSFT: { price: 512.4, changePct: 0.42 },
-  NVDA: { price: 176.75, changePct: 1.93 },
-  GOOGL: { price: 201.33, changePct: -0.21 },
-  TSLA: { price: 322.18, changePct: 2.75 },
-  SPY: { price: 641.2, changePct: -0.31 },
-  QQQ: { price: 552.4, changePct: -0.54 },
-};
 
 function apiKey(): string | undefined {
   return process.env.FINNHUB_API_KEY || undefined;
 }
 
 async function get<T>(path: string, params: Record<string, string>): Promise<T> {
-  const qs = new URLSearchParams({ ...params, token: apiKey()! });
+  const token = apiKey();
+  if (!token) throw new Error("FINNHUB_API_KEY 미설정");
+  const qs = new URLSearchParams({ ...params, token });
   const res = await fetch(`${BASE}${path}?${qs}`, { cache: "no-store" });
   if (!res.ok) throw new Error(`Finnhub ${res.status}: ${path}`);
   return res.json() as Promise<T>;
-}
-
-function mockQuote(code: string) {
-  const base = MOCK_QUOTES[code] ?? { price: 100, changePct: 0 };
-  const jitter = 1 + (Math.random() - 0.5) * 0.002;
-  return {
-    market: "US" as const,
-    price: +(base.price * jitter).toFixed(2),
-    changePct: base.changePct,
-    currency: "USD" as const,
-    asOf: new Date(),
-    isMock: true,
-  };
 }
 
 export const finnhub: MarketDataProvider = {
   market: "US",
 
   async getQuote(code) {
-    if (!apiKey()) return mockQuote(code);
     const d = await get<{ c: number; dp: number | null }>("/quote", { symbol: code });
     if (!d.c) throw new Error(`시세 없음: ${code}`);
     return {
@@ -56,7 +33,6 @@ export const finnhub: MarketDataProvider = {
   },
 
   async getFundamentals(code): Promise<Fundamentals> {
-    if (!apiKey()) return { per: 28.5, pbr: 42.1, eps: 8.71, roe: 147.2 }; // mock
     const d = await get<{ metric?: Record<string, number> }>("/stock/metric", {
       symbol: code,
       metric: "all",
@@ -76,8 +52,6 @@ export const finnhub: MarketDataProvider = {
   },
 
   async getDailyCandles(code, days): Promise<Candle[]> {
-    const cutoff = new Date(Date.now() - days * 86400e3).toISOString().slice(0, 10);
-
     // 1순위: Finnhub candle (무료 티어에서 403인 경우 있음)
     if (apiKey()) {
       try {
@@ -102,14 +76,8 @@ export const finnhub: MarketDataProvider = {
       }
     }
 
-    // 2순위: Stooq (무료, 키 불필요)
-    try {
-      const all = await stooqDailyCandles(code);
-      return all.filter((c) => c.date >= cutoff);
-    } catch {
-      // 3순위: 합성 캔들 (데모용)
-      return syntheticCandles(days, MOCK_QUOTES[code]?.price ?? 100);
-    }
+    // 2순위: 기존 KIS 인증으로 미국 주식 일봉 조회
+    return getUsDailyCandles(code, days);
   },
 
   async getNews(code): Promise<NewsItem[]> {
@@ -129,11 +97,7 @@ export const finnhub: MarketDataProvider = {
   },
 
   async searchSymbol(query): Promise<SymbolInfo[]> {
-    if (!apiKey()) {
-      return Object.keys(MOCK_QUOTES)
-        .filter((s) => s.toLowerCase().includes(query.toLowerCase()))
-        .map((s) => ({ symbol: `US:${s}`, name: s, market: "US" }));
-    }
+    if (!apiKey()) return [];
     const d = await get<{ result: Array<{ symbol: string; description: string }> }>("/search", { q: query });
     return d.result
       .filter((r) => !r.symbol.includes("."))

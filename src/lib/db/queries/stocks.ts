@@ -10,14 +10,18 @@ export async function getWatchlist() {
 }
 
 /** 대시보드용: watchlist + 각 종목 시세 (캐시 경유, KIS 초당 제한 대비 순차 호출) */
-export async function getWatchlistWithQuotes(): Promise<Quote[]> {
+export async function getWatchlistWithQuotes(
+  onFailure?: (failure: { name: string; message: string; usingCache: boolean }) => void,
+): Promise<Quote[]> {
   const list = await getWatchlist();
-  const out: Quote[] = [];
+  const quotes: Quote[] = [];
   for (const s of list) {
-    const q = await getQuoteCached(s.symbol, s.name);
-    if (q) out.push(q);
+    const q = await getQuoteCached(s.symbol, s.name, false, (message, usingCache) =>
+      onFailure?.({ name: s.name, message, usingCache }),
+    );
+    if (q) quotes.push(q);
   }
-  return out;
+  return quotes;
 }
 
 /**

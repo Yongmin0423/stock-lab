@@ -1,3 +1,17 @@
+### 2026-08-11
+
+- **시세·차트 조회 실패 메시지 표시** — `src/lib/cache.ts`, `src/lib/db/queries/stocks.ts`, `src/app/page.tsx`, `src/app/stock/[symbol]/page.tsx`, `src/app/api/refresh-quotes/route.ts`, `src/components/refresh-quotes-button.tsx`, `src/lib/providers/kis.ts`, `src/components/candle-chart.tsx`
+  - 원인/이유: 외부 시세 조회 실패를 빈 값으로 처리해 API 설정 오류와 데이터 부재를 사용자가 구분할 수 없었다.
+  - 수정: 대시보드·종목 상세·수동 갱신에 현재가 실패 원인과 캐시 사용 여부를 표시하고, 차트 API 오류를 차트 내부에 전달해 표시한다.
+
+- **Finnhub 모의 시세·재무지표 제거** — `src/lib/providers/finnhub.ts`
+  - 원인/이유: API 키가 없을 때 임의 가격과 재무지표가 실제 데이터처럼 표시될 수 있었다.
+  - 수정: 키가 없으면 빈 상태 또는 기존 실데이터 캐시만 사용하고, 새 외부 조회에는 명확한 설정 오류를 반환하도록 가짜 데이터를 제거했다.
+
+- **미국 주식 차트를 KIS 실제 일봉으로 교체** — `src/lib/providers/finnhub.ts`, `src/lib/providers/kis.ts`, `src/lib/providers/kis-overseas.ts`, `src/lib/providers/stooq.ts`, `tests/kis-overseas-candles.test.mjs`
+  - 원인/이유: Finnhub 무료 키의 Candle API가 403을 반환하고 Stooq가 봇 검증 HTML을 반환하면, 기준가 100달러의 합성 캔들이 실제 차트처럼 표시·저장됐다.
+  - 수정: Finnhub Candle 실패 시 기존 KIS 인증으로 미국 거래소 일봉을 조회하고, 실제 데이터가 없으면 빈 차트를 반환하도록 합성 데이터 폴백을 제거했다.
+
 ### 2026-07-21
 
 - **발굴 전체 캐시 검사와 분할 갱신** — `src/lib/discover-run.ts`, `src/lib/screening-refresh.ts`, `src/lib/db/queries/screening.ts`, `src/lib/db/schema.ts`, `src/app/api/cron/refresh-screening/route.ts`, `vercel.json`

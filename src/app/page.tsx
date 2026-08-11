@@ -24,8 +24,9 @@ export default async function Dashboard() {
   if (!hasDb()) return <DbSetupNotice />;
 
   let quotes: Quote[];
+  const quoteFailures: Array<{ name: string; message: string; usingCache: boolean }> = [];
   try {
-    quotes = await getWatchlistWithQuotes();
+    quotes = await getWatchlistWithQuotes((failure) => quoteFailures.push(failure));
   } catch (e) {
     return <DbSetupNotice error={e instanceof Error ? e.message : "알 수 없는 오류"} />;
   }
@@ -112,6 +113,12 @@ export default async function Dashboard() {
       {hasMock && (
         <div className="mb-4 rounded-xl border border-[rgba(217,166,63,0.4)] bg-[rgba(217,166,63,0.08)] px-4 py-3 text-sm text-[var(--gold)]">
           일부 시세가 모의 데이터입니다 — <code className="font-mono">.env.local</code>의 키 설정을 확인하세요.
+        </div>
+      )}
+
+      {quoteFailures.length > 0 && (
+        <div className="mb-4 rounded-xl border border-[rgba(240,68,82,0.4)] bg-[rgba(240,68,82,0.08)] px-4 py-3 text-sm text-[var(--up)]">
+          시세 조회 실패 — {quoteFailures.map((f) => `${f.name}: ${f.message}${f.usingCache ? " (저장값 표시 중)" : ""}`).join(" · ")}
         </div>
       )}
 
