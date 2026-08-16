@@ -1,3 +1,13 @@
+### 2026-08-16
+
+- **로그인 제출 상태 표시** — `src/app/login/page.tsx`, `src/app/login/submit-button.tsx`
+  - 원인/이유: 로그인 확인 중에도 제출 버튼이 활성화되어 중복 제출할 수 있고 진행 여부를 알기 어려웠다.
+  - 수정: 서버 액션 제출 상태 동안 버튼을 비활성화하고 `로그인 중…` 문구와 대기 커서를 표시한다.
+
+- **대시보드 독립 조회 병렬화** — `src/app/page.tsx`
+  - 원인/이유: 서로 의존하지 않는 시장·종목·분석·룰·브리핑·노트·발굴 조회를 순차 실행해 대시보드 응답 시간이 누적됐다.
+  - 수정: 독립 조회 7개를 `Promise.all`로 병렬 실행하고 최근 노트 추출은 조회 완료 후 처리한다.
+
 ### 2026-08-11
 
 - **시세·차트 조회 실패 메시지 표시** — `src/lib/cache.ts`, `src/lib/db/queries/stocks.ts`, `src/app/page.tsx`, `src/app/stock/[symbol]/page.tsx`, `src/app/api/refresh-quotes/route.ts`, `src/components/refresh-quotes-button.tsx`, `src/lib/providers/kis.ts`, `src/components/candle-chart.tsx`

@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { LoginSubmitButton } from "./submit-button";
 import { createSessionToken, SESSION_COOKIE, SESSION_MAX_AGE, verifyPassword } from "@/lib/auth";
 
 async function login(formData: FormData) {
@@ -49,9 +50,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           />
           {error === "invalid" && <p className="text-sm text-[var(--up)]">비밀번호가 올바르지 않습니다.</p>}
           {error === "config" && <p className="text-sm text-[var(--up)]">AUTH_PASSWORD와 AUTH_SECRET을 설정해주세요.</p>}
-          <button className="w-full rounded-xl bg-[var(--accent)] px-4 py-3 text-sm font-bold text-white hover:brightness-110">
-            로그인
-          </button>
+          <LoginSubmitButton />
         </form>
       </div>
     </div>
