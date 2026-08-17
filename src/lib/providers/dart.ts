@@ -8,6 +8,7 @@ import { dartCorpCodes } from "@/lib/db/schema";
  */
 
 const BASE = "https://opendart.fss.or.kr/api";
+const TIMEOUT_MS = 8_000;
 
 function apiKey(): string | undefined {
   return process.env.DART_API_KEY || undefined;
@@ -39,7 +40,10 @@ async function financialRatios(corpCode: string): Promise<{ roe?: number; debtTo
       bsns_year: String(year),
       reprt_code: "11011", // 사업보고서
     });
-    const res = await fetch(`${BASE}/fnlttSinglAcnt.json?${qs}`, { cache: "no-store" });
+    const res = await fetch(`${BASE}/fnlttSinglAcnt.json?${qs}`, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
     const d = await res.json();
     if (d.status !== "000" || !Array.isArray(d.list)) continue;
 
@@ -79,7 +83,10 @@ async function dividendYieldOf(corpCode: string, price: number | null): Promise<
       bsns_year: String(year),
       reprt_code: "11011",
     });
-    const res = await fetch(`${BASE}/alotMatter.json?${qs}`, { cache: "no-store" });
+    const res = await fetch(`${BASE}/alotMatter.json?${qs}`, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
     const d = await res.json();
     if (d.status !== "000" || !Array.isArray(d.list)) continue;
 
@@ -103,7 +110,10 @@ export async function dartEnrich(
   if (!corpCode) return {};
 
   try {
-    const [ratios, dividendYield] = [await financialRatios(corpCode), await dividendYieldOf(corpCode, price)];
+    const [ratios, dividendYield] = await Promise.all([
+      financialRatios(corpCode),
+      dividendYieldOf(corpCode, price),
+    ]);
     return { ...ratios, dividendYield };
   } catch {
     return {};

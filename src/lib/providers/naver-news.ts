@@ -1,5 +1,7 @@
 import type { NewsItem } from "./types";
 
+const TIMEOUT_MS = 5_000;
+
 /**
  * 네이버 검색 API — 한국 종목 뉴스 (M4에서 KIS와 함께 활성화).
  * 종목명으로 검색하고, 동명 노이즈를 줄이기 위해 제목에 종목명이 포함된 것만 남긴다.
@@ -14,6 +16,7 @@ export async function naverNews(stockName: string): Promise<NewsItem[]> {
     {
       headers: { "X-Naver-Client-Id": id, "X-Naver-Client-Secret": secret },
       cache: "no-store",
+      signal: AbortSignal.timeout(TIMEOUT_MS),
     },
   );
   if (!res.ok) throw new Error(`Naver ${res.status}`);

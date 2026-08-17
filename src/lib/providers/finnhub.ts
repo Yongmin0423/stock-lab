@@ -2,6 +2,7 @@ import { getUsDailyCandles } from "./kis";
 import type { Candle, Fundamentals, MarketDataProvider, NewsItem, SymbolInfo } from "./types";
 
 const BASE = "https://finnhub.io/api/v1";
+const TIMEOUT_MS = 5_000;
 
 function apiKey(): string | undefined {
   return process.env.FINNHUB_API_KEY || undefined;
@@ -11,7 +12,10 @@ async function get<T>(path: string, params: Record<string, string>): Promise<T> 
   const token = apiKey();
   if (!token) throw new Error("FINNHUB_API_KEY 미설정");
   const qs = new URLSearchParams({ ...params, token });
-  const res = await fetch(`${BASE}${path}?${qs}`, { cache: "no-store" });
+  const res = await fetch(`${BASE}${path}?${qs}`, {
+    cache: "no-store",
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
   if (!res.ok) throw new Error(`Finnhub ${res.status}: ${path}`);
   return res.json() as Promise<T>;
 }

@@ -10,7 +10,7 @@ export async function POST() {
     const list = await getWatchlist();
     let refreshed = 0;
     for (const s of list) {
-      await getNewsCached(s.symbol, s.name);
+      await getNewsCached(s.symbol, s.name, true);
       refreshed++;
     }
     return NextResponse.json({ ok: true, refreshed });

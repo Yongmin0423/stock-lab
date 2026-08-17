@@ -45,6 +45,10 @@ export interface SymbolInfo {
   market: Market;
 }
 
+export function isKrOnlySearchQuery(query: string): boolean {
+  return /[가-힣]/.test(query) || /^\d+$/.test(query);
+}
+
 /** 시장별 데이터 소스 추상화. M4에서 KisProvider 추가 예정 */
 export interface MarketDataProvider {
   market: Market;

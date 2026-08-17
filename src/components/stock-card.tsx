@@ -22,19 +22,24 @@ export function StockCard({
   verdict?: string;
 }) {
   return (
-    <div className="group rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 transition-colors hover:border-[var(--text-faint)]">
+    <div className="group relative rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 transition-colors hover:border-[var(--text-faint)]">
+      <Link
+        href={`/stock/${encodeURIComponent(quote.symbol)}`}
+        aria-label={`${quote.name} 상세 보기`}
+        className="absolute inset-0 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+      />
       <div className="flex items-start justify-between">
-        <Link href={`/stock/${encodeURIComponent(quote.symbol)}`} className="hover:underline">
+        <div>
           <div className="font-bold">{quote.name}</div>
           <div className="text-xs text-[var(--text-faint)]">
             {quote.symbol.replace(":", " · ")}
           </div>
-        </Link>
+        </div>
         <div className="flex items-center gap-2">
           <span className="rounded bg-[var(--surface-2)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--text-dim)]">
             {quote.market}
           </span>
-          <form action={removeStockAction.bind(null, quote.symbol)}>
+          <form action={removeStockAction.bind(null, quote.symbol)} className="relative z-10">
             <button
               title="관심 종목에서 제거"
               className="rounded px-1 text-[var(--text-faint)] opacity-0 transition-opacity hover:text-[var(--up)] group-hover:opacity-100"

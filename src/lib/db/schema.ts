@@ -1,6 +1,7 @@
 import {
   boolean,
   date,
+  index,
   integer,
   jsonb,
   pgTable,
@@ -64,21 +65,25 @@ export const financials = pgTable("financials", {
   fetchedAt: timestamp("fetched_at").notNull(),
 });
 
-export const news = pgTable("news", {
-  id: serial("id").primaryKey(),
-  stockSymbol: text("stock_symbol")
-    .notNull()
-    .references(() => stocks.symbol, { onDelete: "cascade" }),
-  headline: text("headline").notNull(),
-  source: text("source"),
-  url: text("url").notNull().unique(),
-  publishedAt: timestamp("published_at"),
-  fetchedAt: timestamp("fetched_at").defaultNow().notNull(), // 1h TTL 판단용
-  // AI 평가 (수집 시 Haiku 배치 — 키 없으면 null 유지)
-  sentiment: text("sentiment", { enum: ["호재", "악재", "중립"] }),
-  importance: integer("importance"), // 1~3
-  aiNote: text("ai_note"), // 내 원칙과의 관련성 한 줄
-});
+export const news = pgTable(
+  "news",
+  {
+    id: serial("id").primaryKey(),
+    stockSymbol: text("stock_symbol")
+      .notNull()
+      .references(() => stocks.symbol, { onDelete: "cascade" }),
+    headline: text("headline").notNull(),
+    source: text("source"),
+    url: text("url").notNull().unique(),
+    publishedAt: timestamp("published_at"),
+    fetchedAt: timestamp("fetched_at").defaultNow().notNull(), // 1h TTL 판단용
+    // AI 평가 (수집 시 Haiku 배치 — 키 없으면 null 유지)
+    sentiment: text("sentiment", { enum: ["호재", "악재", "중립"] }),
+    importance: integer("importance"), // 1~3
+    aiNote: text("ai_note"), // 내 원칙과의 관련성 한 줄
+  },
+  (t) => [index("news_stock_published_idx").on(t.stockSymbol, t.publishedAt.desc())],
+);
 
 export const notes = pgTable("notes", {
   id: serial("id").primaryKey(),
@@ -99,23 +104,27 @@ export const notes = pgTable("notes", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const analyses = pgTable("analyses", {
-  id: serial("id").primaryKey(),
-  stockSymbol: text("stock_symbol")
-    .notNull()
-    .references(() => stocks.symbol, { onDelete: "cascade" }),
-  verdict: text("verdict", { enum: ["매수검토", "관망", "회피"] }).notNull(),
-  confidence: integer("confidence"),
-  reasons: jsonb("reasons").$type<string[]>(),
-  risks: jsonb("risks").$type<string[]>(),
-  challenges: jsonb("challenges").$type<string[]>(),
-  citedNoteIds: integer("cited_note_ids").array().notNull().default([]),
-  priceAtAnalysis: real("price_at_analysis"),
-  trigger: text("trigger", { enum: ["manual", "briefing"] })
-    .notNull()
-    .default("manual"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export const analyses = pgTable(
+  "analyses",
+  {
+    id: serial("id").primaryKey(),
+    stockSymbol: text("stock_symbol")
+      .notNull()
+      .references(() => stocks.symbol, { onDelete: "cascade" }),
+    verdict: text("verdict", { enum: ["매수검토", "관망", "회피"] }).notNull(),
+    confidence: integer("confidence"),
+    reasons: jsonb("reasons").$type<string[]>(),
+    risks: jsonb("risks").$type<string[]>(),
+    challenges: jsonb("challenges").$type<string[]>(),
+    citedNoteIds: integer("cited_note_ids").array().notNull().default([]),
+    priceAtAnalysis: real("price_at_analysis"),
+    trigger: text("trigger", { enum: ["manual", "briefing"] })
+      .notNull()
+      .default("manual"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [index("analyses_stock_created_idx").on(t.stockSymbol, t.createdAt.desc())],
+);
 
 export const rules = pgTable("rules", {
   id: serial("id").primaryKey(),

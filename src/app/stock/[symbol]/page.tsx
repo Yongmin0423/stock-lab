@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { eq } from "drizzle-orm";
 import { CandleChart } from "@/components/candle-chart";
 import { NewsList } from "@/components/news-list";
@@ -39,23 +40,10 @@ export default async function StockPage({ params }: { params: Promise<{ symbol: 
     quoteFailureRef.value = { message, usingCache };
   });
   const quoteFailure = quoteFailureRef.value;
-  const fund = await getFundamentalsCached(symbol);
-  const newsItems = await getNewsCached(symbol, stock.name);
-  const relatedNotes = await findRelevantNotes(symbol, 4);
-  const history = await listAnalyses(symbol, 5);
-
-  const enabledRules = await listEnabledRules();
-  const ruleResults = evaluateRules(
-    {
-      per: fund?.per ?? null,
-      pbr: fund?.pbr ?? null,
-      eps: fund?.eps ?? null,
-      roe: fund?.roe ?? null,
-      debtToEquity: fund?.debtToEquity ?? null,
-      dividendYield: fund?.dividendYield ?? null,
-    },
-    enabledRules,
-  );
+  const [relatedNotes, history] = await Promise.all([
+    findRelevantNotes(symbol, 4),
+    listAnalyses(symbol, 5),
+  ]);
 
   const latest = history[0];
   const initialAnalysis = latest
@@ -73,20 +61,6 @@ export default async function StockPage({ params }: { params: Promise<{ symbol: 
       }
     : null;
   const open = isMarketOpen(stock.market);
-
-  const metrics = [
-    { k: "PER", v: formatMetric(fund?.per) },
-    { k: "PBR", v: formatMetric(fund?.pbr) },
-    { k: "EPS", v: formatMetric(fund?.eps) },
-    { k: "ROE", v: formatMetric(fund?.roe, "%") },
-    { k: "부채비율", v: formatMetric(fund?.debtToEquity, "%") },
-    { k: "배당수익률", v: formatMetric(fund?.dividendYield, "%") },
-    { k: "시가총액", v: formatMarketCap(fund?.marketCap, stock.market) },
-    {
-      k: "52주 고저",
-      v: fund?.w52Low && fund?.w52High ? `${formatMetric(fund.w52Low)} ~ ${formatMetric(fund.w52High)}` : "—",
-    },
-  ];
 
   return (
     <div>
@@ -125,50 +99,9 @@ export default async function StockPage({ params }: { params: Promise<{ symbol: 
       {/* 차트 */}
       <CandleChart symbol={symbol} />
 
-      {/* 재무 지표 */}
-      <h2 className="mb-3 mt-6 text-[13px] font-bold uppercase tracking-wider text-[var(--text-dim)]">재무 지표</h2>
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-        {metrics.map((m) => (
-          <div key={m.k} className="rounded-lg bg-[var(--surface-2)] px-3 py-2.5">
-            <div className="text-[11px] text-[var(--text-faint)]">{m.k}</div>
-            <div className="num mt-0.5 font-bold">{m.v}</div>
-          </div>
-        ))}
-      </div>
-      {fund && (
-        <p className="mt-2 text-[11px] text-[var(--text-faint)]">
-          재무 데이터 {new Date(fund.fetchedAt).toLocaleString("ko-KR")} 갱신 (24시간 캐시)
-        </p>
-      )}
-
-      {/* 스크리닝 룰 */}
-      <h2 className="mb-3 mt-8 text-[13px] font-bold uppercase tracking-wider text-[var(--text-dim)]">
-        스크리닝 룰{" "}
-        <Link href="/settings" className="normal-case text-[var(--text-faint)] underline hover:text-[var(--text-dim)]">
-          (설정에서 편집)
-        </Link>
-      </h2>
-      <div className="flex flex-wrap gap-2">
-        {ruleResults.map((r) => (
-          <div
-            key={r.name}
-            className={`rounded-xl border px-4 py-2.5 ${
-              r.passed ? "border-[rgba(217,166,63,0.5)]" : "border-[var(--border)]"
-            }`}
-          >
-            <div className={`text-sm font-bold ${r.passed ? "text-[var(--gold)]" : "text-[var(--text-dim)]"}`}>
-              {r.passed ? "✓" : "✗"} {r.name}
-            </div>
-            <div className="num mt-1 flex gap-3 text-[11px] text-[var(--text-faint)]">
-              {r.details.map((d) => (
-                <span key={d.metric} className={d.passed ? "" : "text-[var(--up)]"}>
-                  {d.label} {d.value ?? "—"} ({d.target})
-                </span>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
+      <Suspense fallback={<FundamentalsLoading />}>
+        <StockFundamentals symbol={symbol} market={stock.market} />
+      </Suspense>
 
       {/* AI 분석 */}
       <div className="mt-8">
@@ -190,11 +123,9 @@ export default async function StockPage({ params }: { params: Promise<{ symbol: 
         </div>
       )}
 
-      {/* 뉴스 */}
-      <h2 className="mb-3 mt-8 text-[13px] font-bold uppercase tracking-wider text-[var(--text-dim)]">
-        최근 뉴스
-      </h2>
-      <NewsList items={newsItems.slice(0, 10)} />
+      <Suspense fallback={<NewsLoading />}>
+        <StockNews symbol={symbol} name={stock.name} />
+      </Suspense>
 
       {/* 관련 노트 */}
       {relatedNotes.length > 0 && (
@@ -218,5 +149,114 @@ export default async function StockPage({ params }: { params: Promise<{ symbol: 
       )}
 
     </div>
+  );
+}
+
+async function StockFundamentals({ symbol, market }: { symbol: string; market: "US" | "KR" }) {
+  const [fund, enabledRules] = await Promise.all([getFundamentalsCached(symbol), listEnabledRules()]);
+  const ruleResults = evaluateRules(
+    {
+      per: fund?.per ?? null,
+      pbr: fund?.pbr ?? null,
+      eps: fund?.eps ?? null,
+      roe: fund?.roe ?? null,
+      debtToEquity: fund?.debtToEquity ?? null,
+      dividendYield: fund?.dividendYield ?? null,
+    },
+    enabledRules,
+  );
+  const metrics = [
+    { k: "PER", v: formatMetric(fund?.per) },
+    { k: "PBR", v: formatMetric(fund?.pbr) },
+    { k: "EPS", v: formatMetric(fund?.eps) },
+    { k: "ROE", v: formatMetric(fund?.roe, "%") },
+    { k: "부채비율", v: formatMetric(fund?.debtToEquity, "%") },
+    { k: "배당수익률", v: formatMetric(fund?.dividendYield, "%") },
+    { k: "시가총액", v: formatMarketCap(fund?.marketCap, market) },
+    {
+      k: "52주 고저",
+      v: fund?.w52Low && fund?.w52High ? `${formatMetric(fund.w52Low)} ~ ${formatMetric(fund.w52High)}` : "—",
+    },
+  ];
+
+  return (
+    <>
+      <h2 className="mb-3 mt-6 text-[13px] font-bold uppercase tracking-wider text-[var(--text-dim)]">재무 지표</h2>
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+        {metrics.map((metric) => (
+          <div key={metric.k} className="rounded-lg bg-[var(--surface-2)] px-3 py-2.5">
+            <div className="text-[11px] text-[var(--text-faint)]">{metric.k}</div>
+            <div className="num mt-0.5 font-bold">{metric.v}</div>
+          </div>
+        ))}
+      </div>
+      {fund && (
+        <p className="mt-2 text-[11px] text-[var(--text-faint)]">
+          재무 데이터 {new Date(fund.fetchedAt).toLocaleString("ko-KR")} 갱신 (24시간 캐시)
+        </p>
+      )}
+
+      <h2 className="mb-3 mt-8 text-[13px] font-bold uppercase tracking-wider text-[var(--text-dim)]">
+        스크리닝 룰{" "}
+        <Link href="/settings" className="normal-case text-[var(--text-faint)] underline hover:text-[var(--text-dim)]">
+          (설정에서 편집)
+        </Link>
+      </h2>
+      <div className="flex flex-wrap gap-2">
+        {ruleResults.map((rule) => (
+          <div
+            key={rule.name}
+            className={`rounded-xl border px-4 py-2.5 ${
+              rule.passed ? "border-[rgba(217,166,63,0.5)]" : "border-[var(--border)]"
+            }`}
+          >
+            <div className={`text-sm font-bold ${rule.passed ? "text-[var(--gold)]" : "text-[var(--text-dim)]"}`}>
+              {rule.passed ? "✓" : "✗"} {rule.name}
+            </div>
+            <div className="num mt-1 flex gap-3 text-[11px] text-[var(--text-faint)]">
+              {rule.details.map((detail) => (
+                <span key={detail.metric} className={detail.passed ? "" : "text-[var(--up)]"}>
+                  {detail.label} {detail.value ?? "—"} ({detail.target})
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function FundamentalsLoading() {
+  return (
+    <div className="mt-6 grid animate-pulse grid-cols-2 gap-2.5 motion-reduce:animate-none sm:grid-cols-4">
+      {Array.from({ length: 8 }).map((_, index) => (
+        <div key={index} className="h-16 rounded-lg bg-[var(--surface-2)]" />
+      ))}
+    </div>
+  );
+}
+
+async function StockNews({ symbol, name }: { symbol: string; name: string }) {
+  const newsItems = await getNewsCached(symbol, name);
+
+  return (
+    <>
+      <h2 className="mb-3 mt-8 text-[13px] font-bold uppercase tracking-wider text-[var(--text-dim)]">
+        최근 뉴스
+      </h2>
+      <NewsList items={newsItems.slice(0, 10)} />
+    </>
+  );
+}
+
+function NewsLoading() {
+  return (
+    <>
+      <h2 className="mb-3 mt-8 text-[13px] font-bold uppercase tracking-wider text-[var(--text-dim)]">
+        최근 뉴스
+      </h2>
+      <div className="h-28 animate-pulse rounded-xl border border-[var(--border)] bg-[var(--surface)] motion-reduce:animate-none" />
+    </>
   );
 }

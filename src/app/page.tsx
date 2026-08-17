@@ -32,16 +32,15 @@ export default async function Dashboard() {
   }
 
   const symbols = quotes.map((q) => q.symbol);
-  const [bar, extras, verdicts, enabledRules, brief, notes, discovery] = await Promise.all([
-    getMarketBar(),
-    getDashboardExtras(symbols),
-    latestVerdicts(),
-    listEnabledRules(),
-    latestBriefing(),
-    listNotes(),
-    latestDiscovery(),
-  ]);
-  const recentNotes = notes.slice(0, 3);
+  const [bar, extras, verdicts, enabledRules, brief, recentNotes, discovery] = [
+    await getMarketBar(),
+    await getDashboardExtras(symbols),
+    await latestVerdicts(),
+    await listEnabledRules(),
+    await latestBriefing(),
+    (await listNotes()).slice(0, 3),
+    await latestDiscovery(),
+  ];
 
   // 추천 리스트: 최근 발굴 결과 중 아직 watchlist에 없는 것만
   const recommendations = (discovery?.picks ?? []).filter((p) => !symbols.includes(p.symbol)).slice(0, 3);

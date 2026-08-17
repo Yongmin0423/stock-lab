@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { hasAiKey, llmJson } from "@/lib/ai/llm";
-import { listAnalyses } from "@/lib/db/queries/analyses";
-import { listAllNews } from "@/lib/db/queries/news";
+import { latestAnalysesForSymbols } from "@/lib/db/queries/analyses";
+import { listLatestNewsForSymbols } from "@/lib/db/queries/news";
 import { listNotes } from "@/lib/db/queries/notes";
 import { listEnabledRules } from "@/lib/db/queries/rules";
 import { getDashboardExtras, getWatchlistWithQuotes } from "@/lib/db/queries/stocks";
+import { answerSimpleMarketQuestion, marketQuestionContext } from "@/lib/market-question";
 import { evaluateRules } from "@/lib/rules";
 import { explainVerdictQuestion } from "@/lib/verdict-explanation";
 
@@ -30,81 +31,99 @@ export async function POST(req: Request) {
         hasMock: false,
       });
     }
-    if (!hasAiKey()) return NextResponse.json({ error: "AI API 키가 설정되지 않았습니다" }, { status: 503 });
-
     const quotes = await getWatchlistWithQuotes();
     timing("시세 준비");
     if (quotes.length === 0) return NextResponse.json({ error: "Watchlist가 비어 있습니다" }, { status: 400 });
 
     const symbols = quotes.map((q) => q.symbol);
-    const [extras, enabledRules, notes, newsPage, analysisRows] = await Promise.all([
-      getDashboardExtras(symbols),
-      listEnabledRules(),
-      listNotes(),
-      listAllNews(),
-      Promise.all(symbols.map((symbol) => listAnalyses(symbol, 1))),
-    ]);
-    const rows = quotes.map((q, index) => {
+    const localAnswer = answerSimpleMarketQuestion(parsed.data.question, quotes);
+    if (localAnswer) {
+      timing("즉시 응답");
+      return NextResponse.json({
+        ...localAnswer,
+        contextUsed: ["시세"],
+        asOf: new Date(Math.max(...quotes.map((q) => q.asOf.getTime()))),
+        hasMock: quotes.some((q) => q.isMock),
+      });
+    }
+    if (!hasAiKey()) return NextResponse.json({ error: "AI API 키가 설정되지 않았습니다" }, { status: 503 });
+
+    const context = marketQuestionContext(parsed.data.question);
+    const needsExtras = context.price || context.fundamentals || context.rules;
+    const extras = needsExtras ? await getDashboardExtras(symbols) : { closes: {}, funds: {} };
+    const enabledRules = context.rules ? await listEnabledRules() : [];
+    const notes = context.notes ? await listNotes() : [];
+    const newsRows = context.news ? await listLatestNewsForSymbols(symbols) : [];
+    const latestAnalyses = context.analyses ? await latestAnalysesForSymbols(symbols) : {};
+
+    const rows = quotes.map((q) => {
       const fund = extras.funds[q.symbol];
       const closes = extras.closes[q.symbol] ?? [];
       const firstClose = closes[0];
       const lastClose = closes.at(-1);
       const periodChangePct = firstClose && lastClose ? ((lastClose - firstClose) / firstClose) * 100 : null;
-      const latestAnalysis = analysisRows[index][0];
+      const latestAnalysis = latestAnalyses[q.symbol];
 
       return {
         symbol: q.symbol,
         name: q.name,
         market: q.market,
         quote: { price: q.price, changePct: q.changePct, asOf: q.asOf.toISOString(), isMock: q.isMock },
-        fundamentals: fund
-          ? {
-              per: fund.per,
-              pbr: fund.pbr,
-              eps: fund.eps,
-              roe: fund.roe,
-              debtToEquity: fund.debtToEquity,
-              dividendYield: fund.dividendYield,
-              marketCap: fund.marketCap,
-              w52High: fund.w52High,
-              w52Low: fund.w52Low,
-              fetchedAt: fund.fetchedAt,
-            }
-          : null,
-        recentPrice: closes.length
-          ? {
-              periodDays: 30,
-              dataPoints: closes.length,
-              firstClose,
-              lastClose,
-              low: Math.min(...closes),
-              high: Math.max(...closes),
-              changePct: periodChangePct,
-            }
-          : null,
-        rules: evaluateRules(
-          {
-            per: fund?.per ?? null,
-            pbr: fund?.pbr ?? null,
-            eps: fund?.eps ?? null,
-            roe: fund?.roe ?? null,
-            debtToEquity: fund?.debtToEquity ?? null,
-            dividendYield: fund?.dividendYield ?? null,
-          },
-          enabledRules,
-        ),
-        news: newsPage.rows
-          .filter((item) => item.stockSymbol === q.symbol)
-          .slice(0, 2)
-          .map((item) => ({
-            headline: item.headline,
-            source: item.source,
-            publishedAt: item.publishedAt,
-            sentiment: item.sentiment,
-            importance: item.importance,
-            aiNote: item.aiNote,
-          })),
-        latestAnalysis: latestAnalysis
+        fundamentals: context.fundamentals
+          ? fund
+            ? {
+                per: fund.per,
+                pbr: fund.pbr,
+                eps: fund.eps,
+                roe: fund.roe,
+                debtToEquity: fund.debtToEquity,
+                dividendYield: fund.dividendYield,
+                marketCap: fund.marketCap,
+                w52High: fund.w52High,
+                w52Low: fund.w52Low,
+                fetchedAt: fund.fetchedAt,
+              }
+            : null
+          : undefined,
+        recentPrice: context.price
+          ? closes.length
+            ? {
+                periodDays: 30,
+                dataPoints: closes.length,
+                firstClose,
+                lastClose,
+                low: Math.min(...closes),
+                high: Math.max(...closes),
+                changePct: periodChangePct,
+              }
+            : null
+          : undefined,
+        rules: context.rules
+          ? evaluateRules(
+              {
+                per: fund?.per ?? null,
+                pbr: fund?.pbr ?? null,
+                eps: fund?.eps ?? null,
+                roe: fund?.roe ?? null,
+                debtToEquity: fund?.debtToEquity ?? null,
+                dividendYield: fund?.dividendYield ?? null,
+              },
+              enabledRules,
+            )
+          : undefined,
+        news: context.news
+          ? newsRows
+              .filter((item) => item.stockSymbol === q.symbol)
+              .map((item) => ({
+                headline: item.headline,
+                source: item.source,
+                publishedAt: item.publishedAt,
+                sentiment: item.sentiment,
+                importance: item.importance,
+                aiNote: item.aiNote,
+              }))
+          : undefined,
+        latestAnalysis: context.analyses && latestAnalysis
           ? {
               verdict: latestAnalysis.verdict,
               confidence: latestAnalysis.confidence,
@@ -116,7 +135,8 @@ export async function POST(req: Request) {
           : null,
       };
     });
-    const noteContext = notes
+    const noteContext = context.notes
+      ? notes
       .toSorted((a, b) => Number(b.relatedSymbols.some((symbol) => symbols.includes(symbol))) - Number(a.relatedSymbols.some((symbol) => symbols.includes(symbol))))
       .slice(0, 4)
       .map((note) => ({
@@ -126,12 +146,13 @@ export async function POST(req: Request) {
         relatedSymbols: note.relatedSymbols,
         content: note.content.slice(0, 250),
         updatedAt: note.updatedAt,
-      }));
+      }))
+      : [];
     timing("컨텍스트 준비");
     const result = AnswerSchema.parse(
       await llmJson({
         tier: "fast",
-        maxTokens: 1000,
+        maxTokens: 700,
         timeoutMs: 60_000,
         schemaName: "submit_market_answer",
         system: `너는 개인 주식 리서치 대시보드의 분석 도우미다.
@@ -154,11 +175,20 @@ export async function POST(req: Request) {
     );
     timing("AI 응답");
     const validSymbols = new Set(rows.map((q) => q.symbol));
+    const contextUsed = [
+      "시세",
+      context.price && "30일 가격",
+      context.fundamentals && "재무",
+      context.news && "뉴스",
+      context.rules && "룰",
+      context.notes && "투자 노트",
+      context.analyses && "최근 AI 분석",
+    ].filter((item): item is string => Boolean(item));
 
     return NextResponse.json({
       answer: result.answer,
       citedSymbols: result.cited_symbols.filter((symbol) => validSymbols.has(symbol)),
-      contextUsed: ["시세", "재무", "30일 가격", "뉴스", "룰", "투자 노트", "최근 AI 분석"],
+      contextUsed,
       asOf: new Date(Math.max(...quotes.map((q) => q.asOf.getTime()))),
       hasMock: quotes.some((q) => q.isMock),
     });
