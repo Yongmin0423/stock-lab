@@ -39,13 +39,15 @@ export function SearchDialog({ existing }: { existing: string[] }) {
     if (!query.trim()) {
       setResults([]);
       setError("");
+      setLoading(false);
       return;
     }
     setLoading(true);
     setError("");
+    const controller = new AbortController();
     const t = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`, { signal: controller.signal });
         if (!res.ok || !res.headers.get("content-type")?.includes("application/json")) {
           throw new Error(
             res.status === 504
@@ -54,14 +56,21 @@ export function SearchDialog({ existing }: { existing: string[] }) {
           );
         }
         setResults(await res.json());
+        if (res.headers.get("X-Search-Warning") === "us-unavailable") {
+          setError("미국 종목 검색이 지연되고 있어요. 잠시 후 다시 시도해주세요.");
+        }
       } catch (e) {
+        if (controller.signal.aborted) return;
         setResults([]);
         setError(e instanceof Error ? e.message : "검색 실패");
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     }, 300);
-    return () => clearTimeout(t);
+    return () => {
+      clearTimeout(t);
+      controller.abort();
+    };
   }, [query]);
 
   function add(r: SymbolInfo) {

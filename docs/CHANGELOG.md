@@ -1,3 +1,27 @@
+### 2026-08-17
+
+- **대시보드 AI 질문 DB 부하와 응답 시간 개선** — `src/app/api/ask-market/route.ts`, `src/lib/market-question.ts`, `src/lib/db/queries/news.ts`, `src/lib/db/queries/analyses.ts`, `src/lib/db/schema.ts`, `tests/market-question.test.mjs`
+  - 원인/이유: AI 질문마다 전체 뉴스 정렬·전체 개수 조회와 종목별 분석 N개 쿼리를 다른 DB 조회와 동시에 실행해 Supabase `statement_timeout`이 발생했고, 단순 등락 질문도 전체 컨텍스트와 LLM을 사용했다.
+  - 수정: 단순 등락 질문은 시세로 즉시 계산하고, 복잡한 질문은 의도에 필요한 컨텍스트만 순차 조회한다. 뉴스와 최신 분석은 관심종목 대상 단일 `IN` 쿼리로 통합하고 종목·시간 복합 인덱스를 추가했으며 AI 답변 상한을 700토큰으로 줄였다.
+
+### 2026-08-16
+
+- **종목 검색 지연과 요청 경합 방지** — `src/components/search-dialog.tsx`, `src/app/api/search/route.ts`, `src/lib/providers/finnhub.ts`, `src/lib/providers/types.ts`, `tests/parse-symbol.test.mjs`
+  - 원인/이유: 입력이 바뀌어도 이미 시작한 검색 요청이 남고, Finnhub 요청에 제한 시간이 없어 이전 응답 덮어쓰기와 Vercel 504가 발생할 수 있었다.
+  - 수정: 새 검색 시 이전 요청을 중단하고 Finnhub 호출을 5초로 제한했다. 한글·숫자 검색은 한국 종목 DB만 조회하며, 미국 검색 실패 시 빈 결과로 오인하지 않도록 안내한다. 검색 대상 판별 검증도 추가했다.
+
+- **종목 상세 진입 응답성과 데이터 로딩 개선** — `src/components/stock-card.tsx`, `src/app/stock/[symbol]/page.tsx`, `src/app/stock/[symbol]/loading.tsx`, `src/lib/cache.ts`, `src/app/api/refresh-news/route.ts`, `src/lib/providers/kis.ts`, `src/lib/providers/dart.ts`, `src/lib/providers/naver-news.ts`
+  - 원인/이유: 카드 일부만 링크였고 상세 라우트 로딩 UI가 없었으며, 재무·뉴스·DB 조회와 뉴스 AI 평가를 초기 렌더링에서 순차로 기다렸다.
+  - 수정: 카드 전체를 링크로 만들고 상세 전용 스켈레톤을 추가했다. 재무·룰과 뉴스를 Suspense로 분리하고 독립 DB 조회 및 DART 호출을 병렬화했으며, 뉴스 AI 평가는 수동 뉴스 갱신에서만 실행한다. 외부 KIS·DART·네이버 요청에도 제한 시간을 적용했다.
+
+- **로그인 제출 상태 표시** — `src/app/login/page.tsx`, `src/app/login/submit-button.tsx`
+  - 원인/이유: 로그인 확인 중에도 제출 버튼이 활성화되어 중복 제출할 수 있고 진행 여부를 알기 어려웠다.
+  - 수정: 서버 액션 제출 상태 동안 버튼을 비활성화하고 `로그인 중…` 문구와 대기 커서를 표시한다.
+
+- **대시보드 DB 조회 안정화** — `src/app/page.tsx`
+  - 원인/이유: 독립 조회 7개를 동시에 실행한 뒤 Supabase에서 단순 룰 조회까지 `statement_timeout`으로 취소되어 대시보드가 500 응답을 반환했다.
+  - 수정: DB 연결 압력을 낮추고 페이지 진입을 복구하기 위해 대시보드 조회를 기존 순차 실행으로 되돌렸다.
+
 ### 2026-08-11
 
 - **시세·차트 조회 실패 메시지 표시** — `src/lib/cache.ts`, `src/lib/db/queries/stocks.ts`, `src/app/page.tsx`, `src/app/stock/[symbol]/page.tsx`, `src/app/api/refresh-quotes/route.ts`, `src/components/refresh-quotes-button.tsx`, `src/lib/providers/kis.ts`, `src/components/candle-chart.tsx`

@@ -151,12 +151,44 @@ export async function getCandlesCached(symbol: string, days: number) {
 
 const NEWS_TTL_MS = 60 * 60 * 1000;
 
-/** 뉴스 캐시 (1h TTL). US=Finnhub, KR=네이버 (M4에서 활성화) */
-export async function getNewsCached(symbol: string, name: string) {
+/** 뉴스 캐시 (1h TTL). AI 평가는 명시적인 뉴스 갱신에서만 실행 */
+export async function getNewsCached(symbol: string, name: string, evaluate = false) {
   const db = getDb();
   const { market, code } = parseSymbol(symbol);
   const { news } = await import("./db/schema");
   const { desc } = await import("drizzle-orm");
+
+  async function evaluateStoredNews() {
+    try {
+      const { hasAiKey } = await import("./ai/analyze");
+      if (!hasAiKey()) return;
+
+      const { isNull, and: andOp } = await import("drizzle-orm");
+      const unevaluated = await db
+        .select({ id: news.id, headline: news.headline })
+        .from(news)
+        .where(andOp(eq(news.stockSymbol, symbol), isNull(news.sentiment)))
+        .orderBy(desc(news.publishedAt))
+        .limit(20);
+      if (unevaluated.length === 0) return;
+
+      const { evaluateNewsBatch } = await import("./ai/news-eval");
+      const { listNotes } = await import("./db/queries/notes");
+      const digest = (await listNotes())
+        .slice(0, 10)
+        .map((n) => `[${n.tags.join(",")}] ${n.title}`)
+        .join(" / ");
+      const evals = await evaluateNewsBatch(unevaluated, name, digest);
+      for (const ev of evals) {
+        await db
+          .update(news)
+          .set({ sentiment: ev.sentiment, importance: ev.importance, aiNote: ev.note || null })
+          .where(eq(news.id, ev.id));
+      }
+    } catch {
+      // 평가 실패는 뉴스 표시를 막지 않으며 다음 수동 갱신에서 재시도
+    }
+  }
 
   const rows = await db
     .select()
@@ -166,7 +198,10 @@ export async function getNewsCached(symbol: string, name: string) {
     .limit(20);
 
   const fresh = rows.some((r) => Date.now() - r.fetchedAt.getTime() < NEWS_TTL_MS);
-  if (fresh) return rows;
+  if (fresh) {
+    if (evaluate) await evaluateStoredNews();
+    return rows;
+  }
 
   try {
     const items =
@@ -188,36 +223,7 @@ export async function getNewsCached(symbol: string, name: string) {
         .onConflictDoUpdate({ target: news.url, set: { fetchedAt: new Date() } });
     }
 
-    // AI 평가: 아직 평가 안 된 뉴스만 배치로 (Haiku, 실패해도 뉴스 표시엔 영향 없음)
-    try {
-      const { hasAiKey } = await import("./ai/analyze");
-      if (hasAiKey()) {
-        const { isNull, and: andOp } = await import("drizzle-orm");
-        const unevaluated = await db
-          .select({ id: news.id, headline: news.headline })
-          .from(news)
-          .where(andOp(eq(news.stockSymbol, symbol), isNull(news.sentiment)))
-          .orderBy(desc(news.publishedAt))
-          .limit(20);
-        if (unevaluated.length > 0) {
-          const { evaluateNewsBatch } = await import("./ai/news-eval");
-          const { listNotes } = await import("./db/queries/notes");
-          const digest = (await listNotes())
-            .slice(0, 10)
-            .map((n) => `[${n.tags.join(",")}] ${n.title}`)
-            .join(" / ");
-          const evals = await evaluateNewsBatch(unevaluated, name, digest);
-          for (const ev of evals) {
-            await db
-              .update(news)
-              .set({ sentiment: ev.sentiment, importance: ev.importance, aiNote: ev.note || null })
-              .where(eq(news.id, ev.id));
-          }
-        }
-      }
-    } catch {
-      // 평가 실패 무시 — 다음 수집 때 재시도됨
-    }
+    if (evaluate) await evaluateStoredNews();
 
     return db.select().from(news).where(eq(news.stockSymbol, symbol)).orderBy(desc(news.publishedAt)).limit(20);
   } catch {

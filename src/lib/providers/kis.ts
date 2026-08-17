@@ -14,6 +14,7 @@ const BASE = () =>
   process.env.KIS_ENV === "paper"
     ? "https://openapivts.koreainvestment.com:29443"
     : "https://openapi.koreainvestment.com:9443";
+const TIMEOUT_MS = 10_000;
 
 export function hasKisKeys(): boolean {
   return Boolean(process.env.KIS_APP_KEY && process.env.KIS_APP_SECRET);
@@ -34,6 +35,7 @@ async function getToken(): Promise<string> {
       appsecret: process.env.KIS_APP_SECRET,
     }),
     cache: "no-store",
+    signal: AbortSignal.timeout(TIMEOUT_MS),
   });
   const d = await res.json();
   if (!d.access_token) throw new Error(`KIS 토큰 발급 실패: ${JSON.stringify(d).slice(0, 200)}`);
@@ -59,6 +61,7 @@ async function kisGet(path: string, trId: string, params: Record<string, string>
       custtype: "P",
     },
     cache: "no-store",
+    signal: AbortSignal.timeout(TIMEOUT_MS),
   });
   const d = await res.json();
   if (d.rt_cd !== "0") throw new Error(`KIS ${trId} 오류: ${d.msg1 ?? JSON.stringify(d).slice(0, 200)}`);
