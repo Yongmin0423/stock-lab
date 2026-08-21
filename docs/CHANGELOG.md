@@ -1,3 +1,21 @@
+### 2026-08-21
+
+- **런타임 데이터에 페이지별 Suspense 경계 추가** — `src/components/page-loading.tsx`, `src/app/loading.tsx`, `src/app/page.tsx`, `src/app/login/page.tsx`, `src/app/briefing/page.tsx`, `src/app/discover/page.tsx`, `src/app/news/page.tsx`, `src/app/notes/page.tsx`, `src/app/notes/[id]/page.tsx`, `src/app/settings/page.tsx`, `src/app/stock/[symbol]/page.tsx`, `src/app/stocks/page.tsx`
+  - 원인/이유: 전역 로딩 파일만으로는 페이지 함수가 직접 접근하는 `params`·`searchParams`와 비캐시 DB 작업을 감싸지 못해 개발 서버에서 blocking prerender 경고가 발생했다.
+  - 수정: 각 페이지를 동기 wrapper와 내부 async 콘텐츠로 분리하고 공용 로딩 UI를 가까운 Suspense fallback으로 사용해 정적 셸 밖의 런타임 작업을 명시했다.
+
+- **변경 빈도가 낮은 DB 조회에 선택적 캐시 적용** — `src/lib/db/queries/master.ts`, `src/lib/db/queries/briefings.ts`, `src/lib/db/queries/discoveries.ts`, `src/app/discover/page.tsx`
+  - 원인/이유: Cache Components 활성화 후에도 종목 마스터·브리핑·발굴 결과를 매 요청마다 DB에서 다시 읽고 있었고, 조회 중 시드 작업이 있는 종목 마스터에는 캐시를 직접 적용할 수 없었다.
+  - 수정: 종목 마스터는 시드 후 별도 조회를 일 단위로 캐시하고, 브리핑·발굴은 시간 단위 캐시와 태그를 적용했다. 새 브리핑·발굴 저장 시 해당 태그를 즉시 만료해 생성 직후 최신 결과가 표시되도록 했다.
+
+- **Cache Components 렌더링 구조 활성화** — `next.config.ts`, `src/app/loading.tsx`, `src/app/page.tsx`, `src/app/briefing/page.tsx`, `src/app/discover/page.tsx`, `src/app/news/page.tsx`, `src/app/notes/page.tsx`, `src/app/notes/[id]/page.tsx`, `src/app/settings/page.tsx`, `src/app/stock/[symbol]/page.tsx`, `src/app/stocks/page.tsx`, `src/app/api/cron/refresh-screening/route.ts`
+  - 원인/이유: 전체 페이지의 `force-dynamic` 설정이 Next.js 16 Cache Components의 명시적 정적 셸·동적 콘텐츠 모델과 호환되지 않았다.
+  - 수정: `cacheComponents`를 활성화하고 9개 페이지의 `force-dynamic`을 제거했으며, 전역 로딩 경계 안에서 기존 DB·외부 데이터 조회가 요청 시점에 실행되도록 했다. GET cron도 빌드 중 실행되지 않도록 요청 경계를 명시하고 개발 서버의 에이전트 규칙 파일 자동 생성은 비활성화했으며, 데이터 캐시 정책은 후속 단계에서 별도로 적용한다.
+
+- **Next.js 16 런타임 및 개발 도구 마이그레이션** — `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `tsconfig.json`, `eslint.config.mjs`, `src/proxy.ts`, `src/app/layout.tsx`, `src/app/discover/page.tsx`, `src/components/search-dialog.tsx`
+  - 원인/이유: Next.js 15와 폐기 예정인 Middleware·`next lint` 구성을 사용해 Next.js 16 업그레이드가 필요했다.
+  - 수정: Next.js 16.3.1과 호환 React·타입 패키지로 갱신하고 Middleware를 Proxy로 전환했으며, 공식 flat config 기반 ESLint CLI를 추가했다. 새 린트 규칙에 맞춰 내부 링크와 검색창 상태 정리를 수정했으며 Cache Components는 별도 단계에서 적용한다.
+
 ### 2026-08-17
 
 - **대시보드 AI 질문 DB 부하와 응답 시간 개선** — `src/app/api/ask-market/route.ts`, `src/lib/market-question.ts`, `src/lib/db/queries/news.ts`, `src/lib/db/queries/analyses.ts`, `src/lib/db/schema.ts`, `tests/market-question.test.mjs`

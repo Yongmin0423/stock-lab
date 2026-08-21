@@ -1,6 +1,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { LoginSubmitButton } from "./submit-button";
+import { PageLoading } from "@/components/page-loading";
 import { createSessionToken, SESSION_COOKIE, SESSION_MAX_AGE, verifyPassword } from "@/lib/auth";
 
 async function login(formData: FormData) {
@@ -24,7 +26,15 @@ async function login(formData: FormData) {
   redirect("/");
 }
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+export default function LoginPage(props: { searchParams: Promise<{ error?: string }> }) {
+  return (
+    <Suspense fallback={<PageLoading />}>
+      <LoginContent {...props} />
+    </Suspense>
+  );
+}
+
+async function LoginContent({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const { error } = await searchParams;
 
   return (

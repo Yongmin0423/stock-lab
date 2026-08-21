@@ -1,9 +1,10 @@
-import { NextResponse } from "next/server";
+import { connection, NextResponse } from "next/server";
 import { refreshScreeningFundamentals } from "@/lib/screening-refresh";
 
 export const maxDuration = 300;
 
 export async function GET(req: Request) {
+  await connection();
   const secret = process.env.CRON_SECRET;
   if (secret && req.headers.get("authorization") !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });

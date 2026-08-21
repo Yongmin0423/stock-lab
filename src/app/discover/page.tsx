@@ -1,15 +1,24 @@
+import { Suspense } from "react";
 import { DbSetupNotice } from "@/components/db-setup-notice";
 import { DiscoverPanel } from "@/components/discover-panel";
+import { PageLoading } from "@/components/page-loading";
 import { hasDb } from "@/lib/db";
 import { latestDiscovery } from "@/lib/db/queries/discoveries";
 import { getWatchlist } from "@/lib/db/queries/stocks";
 
-export const dynamic = "force-dynamic";
+export default function DiscoverPage() {
+  return (
+    <Suspense fallback={<PageLoading />}>
+      <DiscoverContent />
+    </Suspense>
+  );
+}
 
-export default async function DiscoverPage() {
+async function DiscoverContent() {
   if (!hasDb()) return <DbSetupNotice />;
 
-  const [latest, watchlist] = [await latestDiscovery(), await getWatchlist()];
+  const watchlist = await getWatchlist();
+  const latest = await latestDiscovery();
 
   return (
     <div>
@@ -20,7 +29,7 @@ export default async function DiscoverPage() {
         </span>
       </div>
       <p className="mb-5 text-xs text-[var(--text-faint)]">
-        예측이 아니라 "내 원칙 적합도" 평가입니다. 캐시된 전체 종목을 검사하고 오래된 재무 데이터는 배치로 갱신합니다.
+        예측이 아니라 &quot;내 원칙 적합도&quot; 평가입니다. 캐시된 전체 종목을 검사하고 오래된 재무 데이터는 배치로 갱신합니다.
       </p>
       <DiscoverPanel
         initial={

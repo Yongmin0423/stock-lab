@@ -1,15 +1,23 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { BriefingGenerate } from "@/components/briefing-generate";
 import { DbSetupNotice } from "@/components/db-setup-notice";
+import { PageLoading } from "@/components/page-loading";
 import { hasDb } from "@/lib/db";
 import { getBriefing, listBriefings } from "@/lib/db/queries/briefings";
 import { changeColorClass, formatChange } from "@/lib/format";
 
-export const dynamic = "force-dynamic";
-
 const SLOT_LABEL = { morning: "🌅 아침", evening: "🌆 저녁" } as const;
 
-export default async function BriefingPage({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
+export default function BriefingPage(props: { searchParams: Promise<{ id?: string }> }) {
+  return (
+    <Suspense fallback={<PageLoading />}>
+      <BriefingContent {...props} />
+    </Suspense>
+  );
+}
+
+async function BriefingContent({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
   if (!hasDb()) return <DbSetupNotice />;
   const { id } = await searchParams;
 

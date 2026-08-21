@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { addStockAction } from "@/app/actions";
 import type { SymbolInfo } from "@/lib/providers/types";
 
@@ -13,37 +13,35 @@ export function SearchDialog({ existing }: { existing: string[] }) {
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const closeDialog = useCallback(() => {
+    setOpen(false);
+    setQuery("");
+    setResults([]);
+    setLoading(false);
+    setError("");
+  }, []);
+
   // ⌘K / Ctrl+K로 열기, Esc로 닫기
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        setOpen((v) => !v);
+        if (open) closeDialog();
+        else setOpen(true);
       }
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") closeDialog();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [closeDialog, open]);
 
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 50);
-    else {
-      setQuery("");
-      setResults([]);
-    }
   }, [open]);
 
   // 300ms 디바운스 검색
   useEffect(() => {
-    if (!query.trim()) {
-      setResults([]);
-      setError("");
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    setError("");
+    if (!query.trim()) return;
     const controller = new AbortController();
     const t = setTimeout(async () => {
       try {
@@ -73,10 +71,22 @@ export function SearchDialog({ existing }: { existing: string[] }) {
     };
   }, [query]);
 
+  function changeQuery(value: string) {
+    setQuery(value);
+    if (value.trim()) {
+      setLoading(true);
+      setError("");
+    } else {
+      setResults([]);
+      setError("");
+      setLoading(false);
+    }
+  }
+
   function add(r: SymbolInfo) {
     startTransition(async () => {
       await addStockAction(r.symbol, r.name, r.market);
-      setOpen(false);
+      closeDialog();
     });
   }
 
@@ -93,7 +103,7 @@ export function SearchDialog({ existing }: { existing: string[] }) {
       {open && (
         <div
           className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 pt-[15vh]"
-          onClick={() => setOpen(false)}
+          onClick={closeDialog}
         >
           <div
             className="w-full max-w-lg rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl"
@@ -102,7 +112,7 @@ export function SearchDialog({ existing }: { existing: string[] }) {
             <input
               ref={inputRef}
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => changeQuery(e.target.value)}
               placeholder="티커 또는 회사명 (예: AAPL, 애플)"
               className="w-full border-b border-[var(--border)] bg-transparent px-4 py-3 text-sm outline-none placeholder:text-[var(--text-faint)]"
             />

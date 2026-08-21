@@ -1,12 +1,12 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { DbSetupNotice } from "@/components/db-setup-notice";
 import { NewsList } from "@/components/news-list";
+import { PageLoading } from "@/components/page-loading";
 import { RefreshNewsButton } from "@/components/refresh-news-button";
 import { hasDb } from "@/lib/db";
 import { listAllNews } from "@/lib/db/queries/news";
 import { getWatchlist } from "@/lib/db/queries/stocks";
-
-export const dynamic = "force-dynamic";
 
 function pageHref(page: number, symbol?: string) {
   const p = new URLSearchParams();
@@ -16,7 +16,17 @@ function pageHref(page: number, symbol?: string) {
   return `/news${s ? `?${s}` : ""}`;
 }
 
-export default async function NewsPage({
+export default function NewsPage(props: {
+  searchParams: Promise<{ symbol?: string; page?: string }>;
+}) {
+  return (
+    <Suspense fallback={<PageLoading />}>
+      <NewsContent {...props} />
+    </Suspense>
+  );
+}
+
+async function NewsContent({
   searchParams,
 }: {
   searchParams: Promise<{ symbol?: string; page?: string }>;

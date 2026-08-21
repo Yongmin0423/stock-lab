@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -29,27 +30,27 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             Stock<span className="text-[var(--accent)]">Lab</span>
           </div>
           <nav className="flex min-w-0 gap-1 overflow-x-auto whitespace-nowrap text-sm text-[var(--text-dim)]">
-            <a href="/" className="rounded-lg px-3 py-1.5 hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
+            <Link href="/" className="rounded-lg px-3 py-1.5 hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
               대시보드
-            </a>
-            <a href="/briefing" className="rounded-lg px-3 py-1.5 hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
+            </Link>
+            <Link href="/briefing" className="rounded-lg px-3 py-1.5 hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
               브리핑
-            </a>
-            <a href="/news" className="rounded-lg px-3 py-1.5 hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
+            </Link>
+            <Link href="/news" className="rounded-lg px-3 py-1.5 hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
               뉴스
-            </a>
-            <a href="/notes" className="rounded-lg px-3 py-1.5 hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
+            </Link>
+            <Link href="/notes" className="rounded-lg px-3 py-1.5 hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
               노트
-            </a>
-            <a href="/discover" className="rounded-lg px-3 py-1.5 hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
+            </Link>
+            <Link href="/discover" className="rounded-lg px-3 py-1.5 hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
               발굴
-            </a>
-            <a href="/stocks" className="rounded-lg px-3 py-1.5 hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
+            </Link>
+            <Link href="/stocks" className="rounded-lg px-3 py-1.5 hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
               전체 종목
-            </a>
-            <a href="/settings" className="rounded-lg px-3 py-1.5 hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
+            </Link>
+            <Link href="/settings" className="rounded-lg px-3 py-1.5 hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
               설정
-            </a>
+            </Link>
           </nav>
         </header>
         <main className="mx-auto max-w-5xl p-6">{children}</main>
