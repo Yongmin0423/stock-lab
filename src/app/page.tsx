@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { DbSetupNotice } from "@/components/db-setup-notice";
 import { EmptyState } from "@/components/empty-state";
 import { MarketQuestion } from "@/components/market-question";
+import { PageLoading } from "@/components/page-loading";
 import { RefreshQuotesButton } from "@/components/refresh-quotes-button";
 import { SearchDialog } from "@/components/search-dialog";
 import { StockCard } from "@/components/stock-card";
@@ -18,9 +20,15 @@ import { isMarketOpen } from "@/lib/market-hours";
 import type { Quote } from "@/lib/providers/types";
 import { evaluateRules } from "@/lib/rules";
 
-export const dynamic = "force-dynamic";
+export default function Dashboard() {
+  return (
+    <Suspense fallback={<PageLoading />}>
+      <DashboardContent />
+    </Suspense>
+  );
+}
 
-export default async function Dashboard() {
+async function DashboardContent() {
   if (!hasDb()) return <DbSetupNotice />;
 
   let quotes: Quote[];

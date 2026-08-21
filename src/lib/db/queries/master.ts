@@ -1,4 +1,5 @@
 import { and, asc, eq, ilike, sql, type SQL } from "drizzle-orm";
+import { cacheLife, cacheTag } from "next/cache";
 import { getDb } from "@/lib/db";
 import { stocksMaster } from "@/lib/db/schema";
 import { UNIVERSE_US } from "@/lib/universe";
@@ -21,8 +22,16 @@ export async function seedUsIfEmpty() {
 
 /** 전체 종목 목록 — 페이지네이션 + 이름/코드 필터 + 시장 필터 */
 export async function listMaster(opts: { page?: number; q?: string; market?: "US" | "KR" } = {}) {
-  const db = getDb();
   await seedUsIfEmpty();
+  return listMasterCached(opts);
+}
+
+async function listMasterCached(opts: { page?: number; q?: string; market?: "US" | "KR" }) {
+  "use cache";
+  cacheLife("days");
+  cacheTag("stocks-master");
+
+  const db = getDb();
 
   const page = Math.max(1, opts.page ?? 1);
   const conds: SQL[] = [];

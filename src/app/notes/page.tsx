@@ -1,12 +1,22 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { DbSetupNotice } from "@/components/db-setup-notice";
+import { PageLoading } from "@/components/page-loading";
 import { hasDb } from "@/lib/db";
 import { listNotes, tagCounts } from "@/lib/db/queries/notes";
 import { timeAgo } from "@/lib/format";
 
-export const dynamic = "force-dynamic";
+export default function NotesPage(props: {
+  searchParams: Promise<{ tag?: string; q?: string }>;
+}) {
+  return (
+    <Suspense fallback={<PageLoading />}>
+      <NotesContent {...props} />
+    </Suspense>
+  );
+}
 
-export default async function NotesPage({
+async function NotesContent({
   searchParams,
 }: {
   searchParams: Promise<{ tag?: string; q?: string }>;

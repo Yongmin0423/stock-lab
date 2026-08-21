@@ -1,11 +1,19 @@
+import { Suspense } from "react";
 import { DbSetupNotice } from "@/components/db-setup-notice";
+import { PageLoading } from "@/components/page-loading";
 import { NewRuleButton, RuleEditor } from "@/components/rule-editor";
 import { hasDb } from "@/lib/db";
 import { listRules } from "@/lib/db/queries/rules";
 
-export const dynamic = "force-dynamic";
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={<PageLoading />}>
+      <SettingsContent />
+    </Suspense>
+  );
+}
 
-export default async function SettingsPage() {
+async function SettingsContent() {
   if (!hasDb()) return <DbSetupNotice />;
   const rules = await listRules();
 

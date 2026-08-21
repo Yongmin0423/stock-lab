@@ -5,7 +5,7 @@ import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth";
  * 개인용 쿠키 인증. 두 환경변수가 모두 없으면 로컬 개발을 위해 통과한다.
  * 하나만 설정된 경우에는 실수로 보호가 풀리지 않도록 요청을 차단한다.
  */
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   if (req.nextUrl.pathname.startsWith("/api/cron/")) return NextResponse.next();
 
   const password = process.env.AUTH_PASSWORD;

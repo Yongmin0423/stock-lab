@@ -1,11 +1,11 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { addStockAction } from "@/app/actions";
 import { DbSetupNotice } from "@/components/db-setup-notice";
+import { PageLoading } from "@/components/page-loading";
 import { hasDb } from "@/lib/db";
 import { listMaster } from "@/lib/db/queries/master";
 import { getWatchlist } from "@/lib/db/queries/stocks";
-
-export const dynamic = "force-dynamic";
 
 type Market = "US" | "KR";
 
@@ -18,7 +18,17 @@ function pageHref(page: number, q?: string, m?: string) {
   return `/stocks${s ? `?${s}` : ""}`;
 }
 
-export default async function StocksPage({
+export default function StocksPage(props: {
+  searchParams: Promise<{ page?: string; q?: string; m?: string }>;
+}) {
+  return (
+    <Suspense fallback={<PageLoading />}>
+      <StocksContent {...props} />
+    </Suspense>
+  );
+}
+
+async function StocksContent({
   searchParams,
 }: {
   searchParams: Promise<{ page?: string; q?: string; m?: string }>;

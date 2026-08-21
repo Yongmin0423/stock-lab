@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { eq } from "drizzle-orm";
 import { CandleChart } from "@/components/candle-chart";
 import { NewsList } from "@/components/news-list";
+import { PageLoading } from "@/components/page-loading";
 import { getFundamentalsCached, getNewsCached, getQuoteCached } from "@/lib/cache";
 import { AnalyzePanel } from "@/components/analyze-panel";
 import { getDb, hasDb } from "@/lib/db";
@@ -15,9 +16,15 @@ import { evaluateRules } from "@/lib/rules";
 import { changeColorClass, formatChange, formatMarketCap, formatMetric, formatPrice } from "@/lib/format";
 import { isMarketOpen } from "@/lib/market-hours";
 
-export const dynamic = "force-dynamic";
+export default function StockPage(props: { params: Promise<{ symbol: string }> }) {
+  return (
+    <Suspense fallback={<PageLoading />}>
+      <StockContent {...props} />
+    </Suspense>
+  );
+}
 
-export default async function StockPage({ params }: { params: Promise<{ symbol: string }> }) {
+async function StockContent({ params }: { params: Promise<{ symbol: string }> }) {
   const symbol = decodeURIComponent((await params).symbol);
   if (!hasDb()) notFound();
 

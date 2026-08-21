@@ -1,15 +1,23 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { NoteEditor } from "@/components/note-editor";
+import { PageLoading } from "@/components/page-loading";
 import { NoteReview } from "@/components/note-review";
 import { NoteToRule } from "@/components/note-to-rule";
 import { DbSetupNotice } from "@/components/db-setup-notice";
 import { hasDb } from "@/lib/db";
 import { getNote } from "@/lib/db/queries/notes";
 
-export const dynamic = "force-dynamic";
+export default function EditNotePage(props: { params: Promise<{ id: string }> }) {
+  return (
+    <Suspense fallback={<PageLoading />}>
+      <EditNoteContent {...props} />
+    </Suspense>
+  );
+}
 
-export default async function EditNotePage({ params }: { params: Promise<{ id: string }> }) {
+async function EditNoteContent({ params }: { params: Promise<{ id: string }> }) {
   if (!hasDb()) return <DbSetupNotice />;
   const id = Number((await params).id);
   if (!Number.isFinite(id)) notFound();
