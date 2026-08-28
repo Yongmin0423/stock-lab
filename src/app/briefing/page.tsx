@@ -48,7 +48,7 @@ async function BriefingContent({ searchParams }: { searchParams: Promise<{ id?: 
           {/* 시장 요약 */}
           <div className="rounded-xl border border-[rgba(124,108,240,0.4)] bg-gradient-to-b from-[rgba(124,108,240,0.08)] to-transparent p-5">
             <div className="text-xs font-bold text-[var(--accent)]">시장 요약</div>
-            <p className="mt-1.5 text-sm leading-relaxed text-[var(--text-dim)]">{current.marketSummary}</p>
+            <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-[var(--text-dim)]">{current.marketSummary}</p>
           </div>
 
           {/* 주목 종목 */}
@@ -93,7 +93,7 @@ async function BriefingContent({ searchParams }: { searchParams: Promise<{ id?: 
                       </span>
                     )}
                   </Link>
-                  <p className={`text-sm leading-relaxed ${quiet ? "text-[var(--text-faint)]" : "text-[var(--text-dim)]"}`}>
+                  <p className={`whitespace-pre-line text-sm leading-relaxed ${quiet ? "text-[var(--text-faint)]" : "text-[var(--text-dim)]"}`}>
                     {s.summary}
                   </p>
                 </div>

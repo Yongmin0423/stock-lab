@@ -6,6 +6,7 @@ import { listAnalyses } from "@/lib/db/queries/analyses";
 import { listNotes } from "@/lib/db/queries/notes";
 import { listEnabledRules } from "@/lib/db/queries/rules";
 import { getWatchlist } from "@/lib/db/queries/stocks";
+import { getMarketBar } from "@/lib/market-overview";
 import { evaluateRules } from "@/lib/rules";
 
 /** 브리핑 생성 전체 파이프라인 — 수동 버튼(/api/briefing)과 cron(/api/cron/briefing)이 공용 */
@@ -15,6 +16,8 @@ export async function generateBriefing(slot: "morning" | "evening"): Promise<{ r
 
   const enabledRules = await listEnabledRules();
   const prev = await latestBriefing();
+  const notes = await listNotes();
+  const market = await getMarketBar();
 
   // 순차 수집 (KIS 초당 제한 대비, 대부분 캐시 히트)
   const stocks: BriefingStockInput[] = [];
@@ -29,6 +32,20 @@ export async function generateBriefing(slot: "morning" | "evening"): Promise<{ r
       name: s.name,
       price: quote?.price ?? null,
       changePct: quote?.changePct ?? null,
+      fundamentals: fund
+        ? {
+            per: fund.per,
+            pbr: fund.pbr,
+            eps: fund.eps,
+            roe: fund.roe,
+            debtToEquity: fund.debtToEquity,
+            dividendYield: fund.dividendYield,
+            marketCap: fund.marketCap,
+            w52High: fund.w52High,
+            w52Low: fund.w52Low,
+            fetchedAt: fund.fetchedAt,
+          }
+        : null,
       ruleResults: evaluateRules(
         {
           per: fund?.per ?? null,
@@ -41,19 +58,35 @@ export async function generateBriefing(slot: "morning" | "evening"): Promise<{ r
         enabledRules,
       ),
       latestAnalysis: latest
-        ? { verdict: latest.verdict, createdAt: latest.createdAt, reasons: latest.reasons ?? [] }
+        ? {
+            verdict: latest.verdict,
+            confidence: latest.confidence,
+            createdAt: latest.createdAt,
+            priceAtAnalysis: latest.priceAtAnalysis,
+            reasons: latest.reasons ?? [],
+            risks: latest.risks ?? [],
+            challenges: latest.challenges ?? [],
+          }
         : null,
-      headlines: newsRows.slice(0, 5).map((n) => n.headline),
+      news: newsRows.slice(0, 8).map((n) => ({
+        headline: n.headline,
+        source: n.source,
+        publishedAt: n.publishedAt,
+        isNew: n.publishedAt != null && (!prev || n.publishedAt > prev.createdAt),
+      })),
+      relatedNotes: notes
+        .filter((n) => n.relatedSymbols.includes(s.symbol))
+        .slice(0, 3)
+        .map((n) => ({ id: n.id, title: n.title, tags: n.tags, content: n.content.slice(0, 250) })),
     });
   }
 
-  const notes = await listNotes();
   const noteDigest = notes
-    .slice(0, 8)
-    .map((n) => `- [${n.tags.join(",")}] ${n.title}: ${n.content.slice(0, 150)}`)
+    .slice(0, 5)
+    .map((n) => `- [note-${n.id}] [${n.tags.join(",")}] ${n.title}: ${n.content.slice(0, 250)}`)
     .join("\n");
 
-  const ctx: BriefingContext = { slot, stocks, noteDigest, prevBriefingAt: prev?.createdAt ?? null };
+  const ctx: BriefingContext = { slot, market, stocks, noteDigest, prevBriefingAt: prev?.createdAt ?? null };
   const result = hasAiKey() ? await runBriefing(ctx) : mockBriefing(ctx);
   const nameOf = (sym: string) => list.find((s) => s.symbol === sym)?.name ?? sym;
 

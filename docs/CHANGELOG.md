@@ -1,3 +1,9 @@
+### 2026-08-28
+
+- **아침·저녁 브리핑 분석 컨텍스트 확장** — `src/lib/briefing-run.ts`, `src/lib/ai/briefing.ts`, `src/app/briefing/page.tsx`, `tests/briefing-prompt.test.mjs`
+  - 원인/이유: 브리핑 프롬프트가 시장 전체 지표 없이 룰 통과 여부, 최근 분석의 첫 근거, 출처·시각 없는 뉴스 제목만 받아 종목별 변화와 기존 판단에 미치는 영향을 구체적으로 설명하기 어려웠다.
+  - 수정: 기존 시장 상태 수집기를 재사용하고 재무·룰 상세, 최근 분석 전체, 새 뉴스 여부, 종목 관련 노트를 브리핑에 전달했다. 종목별 결과를 확인된 변화·해석·기존 판단 영향·다음 확인 순서로 작성하고 줄바꿈을 보존해 표시한다.
+
 ### 2026-08-21
 
 - **런타임 데이터에 페이지별 Suspense 경계 추가** — `src/components/page-loading.tsx`, `src/app/loading.tsx`, `src/app/page.tsx`, `src/app/login/page.tsx`, `src/app/briefing/page.tsx`, `src/app/discover/page.tsx`, `src/app/news/page.tsx`, `src/app/notes/page.tsx`, `src/app/notes/[id]/page.tsx`, `src/app/settings/page.tsx`, `src/app/stock/[symbol]/page.tsx`, `src/app/stocks/page.tsx`
