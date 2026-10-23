@@ -15,11 +15,13 @@ export function StockCard({
   closes = [],
   passedRules = [],
   verdict,
+  canManage = false,
 }: {
   quote: Quote;
   closes?: number[];
   passedRules?: string[];
   verdict?: string;
+  canManage?: boolean;
 }) {
   return (
     <div className="group relative rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 transition-colors hover:border-[var(--text-faint)]">
@@ -39,14 +41,14 @@ export function StockCard({
           <span className="rounded bg-[var(--surface-2)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--text-dim)]">
             {quote.market}
           </span>
-          <form action={removeStockAction.bind(null, quote.symbol)} className="relative z-10">
+          {canManage && <form action={removeStockAction.bind(null, quote.symbol)} className="relative z-10">
             <button
               title="관심 종목에서 제거"
               className="rounded px-1 text-[var(--text-faint)] opacity-0 transition-opacity hover:text-[var(--up)] group-hover:opacity-100"
             >
               ✕
             </button>
-          </form>
+          </form>}
         </div>
       </div>
       <div className="num mt-3 flex items-baseline gap-2">

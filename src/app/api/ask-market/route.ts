@@ -1,3 +1,4 @@
+import { operatorApiError } from "@/lib/operator";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { hasAiKey, llmJson } from "@/lib/ai/llm";
@@ -16,6 +17,8 @@ const RequestSchema = z.object({ question: z.string().trim().min(1).max(500) });
 const AnswerSchema = z.object({ answer: z.string(), cited_symbols: z.array(z.string()) });
 
 export async function POST(req: Request) {
+  const denied = await operatorApiError();
+  if (denied) return denied;
   const startedAt = Date.now();
   const timing = (stage: string) => console.info(`시장 질문 ${stage}: ${Date.now() - startedAt}ms`);
   try {

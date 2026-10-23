@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { addStockAction } from "@/app/actions";
 
 type Pick = {
@@ -22,7 +23,7 @@ type Result = {
   createdAt?: string | Date;
 };
 
-export function DiscoverPanel({ initial, watchlist }: { initial: Result | null; watchlist: string[] }) {
+export function DiscoverPanel({ initial, watchlist, canManage = false }: { initial: Result | null; watchlist: string[]; canManage?: boolean }) {
   const [result, setResult] = useState<Result | null>(initial);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,13 +71,13 @@ export function DiscoverPanel({ initial, watchlist }: { initial: Result | null; 
   return (
     <div>
       <div className="flex items-center gap-3">
-        <button
+        {canManage ? <button
           onClick={run}
           disabled={loading}
           className="rounded-xl bg-[var(--accent)] px-5 py-2.5 text-sm font-bold text-white hover:brightness-110 disabled:opacity-50"
         >
           {loading ? "전체 유니버스 검사 중…" : "🔍 새로 발굴"}
-        </button>
+        </button> : <Link href="/login" className="text-sm text-[var(--accent)] underline">발굴 실행은 운영자 로그인 후 가능</Link>}
         {result?.createdAt && (
           <span className="text-xs text-[var(--text-faint)]">
             마지막 발굴: {new Date(result.createdAt).toLocaleString("ko-KR")}
@@ -104,7 +105,7 @@ export function DiscoverPanel({ initial, watchlist }: { initial: Result | null; 
                 return (
                   <div key={p.symbol} className="rounded-xl border border-[rgba(217,166,63,0.35)] bg-[var(--surface)] p-4">
                     <div className="flex flex-wrap items-center gap-3">
-                      <button
+                      {canManage ? <button
                         type="button"
                         onClick={() => openDetail(p, inList)}
                         disabled={pending}
@@ -112,18 +113,18 @@ export function DiscoverPanel({ initial, watchlist }: { initial: Result | null; 
                         title="종목 상세 보기"
                       >
                         {p.name}
-                      </button>
+                      </button> : inList ? <Link href={`/stock/${encodeURIComponent(p.symbol)}`} className="font-bold hover:underline">{p.name}</Link> : <span className="font-bold">{p.name}</span>}
                       <span className="text-xs text-[var(--text-faint)]">{p.symbol.replace(":", " · ")}</span>
                       <span className="rounded-full bg-[rgba(217,166,63,0.12)] px-2.5 py-0.5 text-xs font-bold text-[var(--gold)]">
                         적합도 {p.fit_score}/5
                       </span>
-                      <button
+                      {canManage && <button
                         onClick={() => addToWatchlist(p)}
                         disabled={inList || pending}
                         className="ml-auto rounded-lg border border-[rgba(124,108,240,0.5)] px-3 py-1 text-xs font-bold text-[var(--accent)] hover:bg-[rgba(124,108,240,0.08)] disabled:opacity-50"
                       >
                         {inList ? "watchlist에 있음 ✓" : "+ watchlist 추가"}
-                      </button>
+                      </button>}
                     </div>
                     <p className="mt-2 text-sm leading-relaxed text-[var(--text-dim)]">{p.reason}</p>
                     <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
@@ -133,9 +134,9 @@ export function DiscoverPanel({ initial, watchlist }: { initial: Result | null; 
                   </div>
                 );
               })}
-              <p className="text-[11px] text-[var(--text-faint)]">
+              {canManage && <p className="text-[11px] text-[var(--text-faint)]">
                 추가한 종목은 상세 페이지에서 정식 AI 분석(노트·뉴스 반영)을 돌려보세요.
-              </p>
+              </p>}
             </div>
           )}
         </div>

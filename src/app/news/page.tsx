@@ -7,6 +7,7 @@ import { RefreshNewsButton } from "@/components/refresh-news-button";
 import { hasDb } from "@/lib/db";
 import { listAllNews } from "@/lib/db/queries/news";
 import { getWatchlist } from "@/lib/db/queries/stocks";
+import { isOperator } from "@/lib/operator";
 
 function pageHref(page: number, symbol?: string) {
   const p = new URLSearchParams();
@@ -32,6 +33,7 @@ async function NewsContent({
   searchParams: Promise<{ symbol?: string; page?: string }>;
 }) {
   if (!hasDb()) return <DbSetupNotice />;
+  const operator = await isOperator();
   const { symbol: filter, page: pageRaw } = await searchParams;
   const page = Number(pageRaw) || 1;
 
@@ -50,9 +52,9 @@ async function NewsContent({
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <h1 className="text-xl font-extrabold tracking-tight">뉴스</h1>
         <span className="text-xs text-[var(--text-faint)]">{total.toLocaleString()}건</span>
-        <div className="ml-auto">
+        {operator && <div className="ml-auto">
           <RefreshNewsButton />
-        </div>
+        </div>}
       </div>
 
       {/* 종목 필터 칩 */}
@@ -82,7 +84,7 @@ async function NewsContent({
 
       {rows.length === 0 ? (
         <div className="rounded-xl border border-dashed border-[var(--border)] p-10 text-center text-sm text-[var(--text-dim)]">
-          아직 뉴스가 없어요 — 우측 상단 ↻ 버튼으로 수집해보세요.
+          {operator ? "아직 뉴스가 없어요 — 우측 상단 ↻ 버튼으로 수집해보세요." : "아직 수집된 뉴스가 없습니다."}
         </div>
       ) : (
         <>

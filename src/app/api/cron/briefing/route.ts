@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { verifyCronAuthorization } from "@/lib/auth";
 import { hasAiKey } from "@/lib/ai/analyze";
 import { generateBriefing } from "@/lib/briefing-run";
 import { generateDiscovery } from "@/lib/discover-run";
@@ -11,7 +12,7 @@ export const maxDuration = 300; // 브리핑 + 발굴 순차 실행
  */
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
-  if (secret && req.headers.get("authorization") !== `Bearer ${secret}`) {
+  if (!verifyCronAuthorization(req.headers.get("authorization"), secret)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

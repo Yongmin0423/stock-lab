@@ -1,9 +1,12 @@
+import { operatorApiError } from "@/lib/operator";
 import { NextResponse } from "next/server";
 import { generateBriefing } from "@/lib/briefing-run";
 
 export const maxDuration = 120;
 
 export async function POST(req: Request) {
+  const denied = await operatorApiError();
+  if (denied) return denied;
   try {
     const { slot } = (await req.json()) as { slot?: "morning" | "evening" };
     const resolvedSlot = slot ?? (new Date().getHours() < 12 ? "morning" : "evening");

@@ -6,6 +6,7 @@ import { PageLoading } from "@/components/page-loading";
 import { hasDb } from "@/lib/db";
 import { getBriefing, listBriefings } from "@/lib/db/queries/briefings";
 import { changeColorClass, formatChange } from "@/lib/format";
+import { isOperator } from "@/lib/operator";
 
 const SLOT_LABEL = { morning: "🌅 아침", evening: "🌆 저녁" } as const;
 
@@ -18,6 +19,7 @@ export default function BriefingPage(props: { searchParams: Promise<{ id?: strin
 }
 
 async function BriefingContent({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
+  const operator = await isOperator();
   if (!hasDb()) return <DbSetupNotice />;
   const { id } = await searchParams;
 
@@ -28,14 +30,14 @@ async function BriefingContent({ searchParams }: { searchParams: Promise<{ id?: 
     <div>
       <div className="mb-5 flex flex-wrap items-center gap-4">
         <h1 className="text-xl font-extrabold tracking-tight">브리핑</h1>
-        <BriefingGenerate />
+        {operator ? <BriefingGenerate /> : <Link href="/login" className="text-sm text-[var(--accent)] underline">생성은 운영자 로그인 후 가능</Link>}
       </div>
 
       {!current ? (
         <div className="rounded-xl border border-dashed border-[var(--border)] p-10 text-center text-sm text-[var(--text-dim)]">
-          아직 브리핑이 없어요. 위 버튼으로 첫 브리핑을 생성해보세요.
+          {operator ? "아직 브리핑이 없어요. 위 버튼으로 첫 브리핑을 생성해보세요." : "아직 공개된 브리핑이 없습니다."}
           <div className="mt-2 text-xs text-[var(--text-faint)]">
-            (배포 후에는 매일 아침·저녁 자동 생성됩니다 — M8에서 cron 연결)
+            평일 아침·저녁에 자동 생성됩니다.
           </div>
         </div>
       ) : (

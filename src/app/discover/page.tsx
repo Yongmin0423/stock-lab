@@ -5,6 +5,7 @@ import { PageLoading } from "@/components/page-loading";
 import { hasDb } from "@/lib/db";
 import { latestDiscovery } from "@/lib/db/queries/discoveries";
 import { getWatchlist } from "@/lib/db/queries/stocks";
+import { isOperator } from "@/lib/operator";
 
 export default function DiscoverPage() {
   return (
@@ -15,6 +16,7 @@ export default function DiscoverPage() {
 }
 
 async function DiscoverContent() {
+  const operator = await isOperator();
   if (!hasDb()) return <DbSetupNotice />;
 
   const watchlist = await getWatchlist();
@@ -32,6 +34,7 @@ async function DiscoverContent() {
         예측이 아니라 &quot;내 원칙 적합도&quot; 평가입니다. 캐시된 전체 종목을 검사하고 오래된 재무 데이터는 배치로 갱신합니다.
       </p>
       <DiscoverPanel
+        canManage={operator}
         initial={
           latest
             ? {

@@ -15,6 +15,8 @@ import { stocks } from "@/lib/db/schema";
 import { evaluateRules } from "@/lib/rules";
 import { changeColorClass, formatChange, formatMarketCap, formatMetric, formatPrice } from "@/lib/format";
 import { isMarketOpen } from "@/lib/market-hours";
+import { isOperator } from "@/lib/operator";
+import { notePreview } from "@/lib/note-preview";
 
 export default function StockPage(props: { params: Promise<{ symbol: string }> }) {
   return (
@@ -25,6 +27,7 @@ export default function StockPage(props: { params: Promise<{ symbol: string }> }
 }
 
 async function StockContent({ params }: { params: Promise<{ symbol: string }> }) {
+  const operator = await isOperator();
   const symbol = decodeURIComponent((await params).symbol);
   if (!hasDb()) notFound();
 
@@ -112,7 +115,7 @@ async function StockContent({ params }: { params: Promise<{ symbol: string }> })
 
       {/* AI 분석 */}
       <div className="mt-8">
-        <AnalyzePanel symbol={symbol} initial={initialAnalysis} />
+        <AnalyzePanel symbol={symbol} initial={initialAnalysis} canManage={operator} />
       </div>
 
       {/* 분석 이력 */}
@@ -148,7 +151,7 @@ async function StockContent({ params }: { params: Promise<{ symbol: string }> })
                 className="rounded-xl border border-[rgba(217,166,63,0.35)] bg-[var(--surface)] p-3 hover:border-[var(--gold)]"
               >
                 <div className="text-sm font-bold text-[var(--gold)]">✎ {n.title}</div>
-                <p className="mt-1 line-clamp-1 text-xs text-[var(--text-dim)]">{n.content}</p>
+                <p className="mt-1 line-clamp-1 text-xs text-[var(--text-dim)]">{operator ? n.content : notePreview(n.content)}</p>
               </Link>
             ))}
           </div>

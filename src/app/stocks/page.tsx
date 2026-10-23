@@ -6,6 +6,7 @@ import { PageLoading } from "@/components/page-loading";
 import { hasDb } from "@/lib/db";
 import { listMaster } from "@/lib/db/queries/master";
 import { getWatchlist } from "@/lib/db/queries/stocks";
+import { isOperator } from "@/lib/operator";
 
 type Market = "US" | "KR";
 
@@ -34,6 +35,7 @@ async function StocksContent({
   searchParams: Promise<{ page?: string; q?: string; m?: string }>;
 }) {
   if (!hasDb()) return <DbSetupNotice />;
+  const operator = await isOperator();
   const { page: pageRaw, q, m } = await searchParams;
   const page = Number(pageRaw) || 1;
   const market = m === "US" || m === "KR" ? (m as Market) : undefined;
@@ -122,14 +124,14 @@ async function StocksContent({
                   ) : (
                     <span className="truncate text-sm">{r.name}</span>
                   )}
-                  <form action={addStockAction.bind(null, symbol, r.name, r.market)} className="ml-auto shrink-0">
+                  {operator && <form action={addStockAction.bind(null, symbol, r.name, r.market)} className="ml-auto shrink-0">
                     <button
                       disabled={added}
                       className="rounded-lg border border-[rgba(124,108,240,0.5)] px-3 py-1 text-xs font-bold text-[var(--accent)] hover:bg-[rgba(124,108,240,0.08)] disabled:border-[var(--border)] disabled:text-[var(--text-faint)]"
                     >
                       {added ? "추가됨 ✓" : "+ 추가"}
                     </button>
-                  </form>
+                  </form>}
                 </div>
               );
             })}

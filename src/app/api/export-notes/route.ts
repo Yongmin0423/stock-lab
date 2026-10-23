@@ -1,7 +1,10 @@
+import { operatorApiError } from "@/lib/operator";
 import { listNotes } from "@/lib/db/queries/notes";
 
 /** 노트 전체 markdown 백업 다운로드 — 노트는 이 서비스의 유일한 대체 불가 자산 */
 export async function GET() {
+  const denied = await operatorApiError();
+  if (denied) return denied;
   const notes = await listNotes();
 
   const md = [

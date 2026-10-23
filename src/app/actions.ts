@@ -3,18 +3,22 @@
 import { revalidatePath } from "next/cache";
 import { deleteStock, insertStock } from "@/lib/db/queries/stocks";
 import type { Market } from "@/lib/providers/types";
+import { requireOperator } from "@/lib/operator";
 
 export async function addStockAction(symbol: string, name: string, market: Market) {
+  await requireOperator();
   await insertStock(symbol, name, market);
   revalidatePath("/");
 }
 
 export async function removeStockAction(symbol: string) {
+  await requireOperator();
   await deleteStock(symbol);
   revalidatePath("/");
 }
 
 export async function saveNoteAction(formData: FormData) {
+  await requireOperator();
   const { upsertNote } = await import("@/lib/db/queries/notes");
   const { redirect } = await import("next/navigation");
 
@@ -43,6 +47,7 @@ export async function saveNoteAction(formData: FormData) {
 }
 
 export async function deleteNoteAction(id: number) {
+  await requireOperator();
   const { removeNote } = await import("@/lib/db/queries/notes");
   const { redirect } = await import("next/navigation");
   await removeNote(id);
@@ -56,6 +61,7 @@ export async function saveRuleAction(data: {
   definition: Array<{ metric: string; op: string; value: number }>;
   enabled: boolean;
 }) {
+  await requireOperator();
   const { saveRule } = await import("@/lib/db/queries/rules");
   if (!data.name.trim() || data.definition.length === 0) return;
   await saveRule({ ...data, name: data.name.trim() });
@@ -63,6 +69,7 @@ export async function saveRuleAction(data: {
 }
 
 export async function deleteRuleAction(id: number) {
+  await requireOperator();
   const { deleteRule } = await import("@/lib/db/queries/rules");
   await deleteRule(id);
   revalidatePath("/settings");

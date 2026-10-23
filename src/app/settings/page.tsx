@@ -4,6 +4,7 @@ import { PageLoading } from "@/components/page-loading";
 import { NewRuleButton, RuleEditor } from "@/components/rule-editor";
 import { hasDb } from "@/lib/db";
 import { listRules } from "@/lib/db/queries/rules";
+import { requireOperator } from "@/lib/operator";
 
 export default function SettingsPage() {
   return (
@@ -14,6 +15,7 @@ export default function SettingsPage() {
 }
 
 async function SettingsContent() {
+  await requireOperator();
   if (!hasDb()) return <DbSetupNotice />;
   const rules = await listRules();
 

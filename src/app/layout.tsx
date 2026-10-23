@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
+import { OperatorMenu } from "@/components/operator-menu";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -48,10 +50,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link href="/stocks" className="rounded-lg px-3 py-1.5 hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
               전체 종목
             </Link>
-            <Link href="/settings" className="rounded-lg px-3 py-1.5 hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-              설정
-            </Link>
           </nav>
+          <Suspense fallback={null}><OperatorMenu /></Suspense>
         </header>
         <main className="mx-auto max-w-5xl p-6">{children}</main>
         <footer className="py-8 text-center text-[11px] text-[var(--text-faint)]">

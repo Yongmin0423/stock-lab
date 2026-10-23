@@ -1,3 +1,4 @@
+import { operatorApiError } from "@/lib/operator";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -24,6 +25,8 @@ export const maxDuration = 60;
 
 /** 정성적 노트 → 정량적 스크리닝 룰 변환 제안 */
 export async function POST(req: Request) {
+  const denied = await operatorApiError();
+  if (denied) return denied;
   try {
     const { noteId } = (await req.json()) as { noteId?: number };
     if (!noteId) return NextResponse.json({ error: "noteId 필요" }, { status: 400 });

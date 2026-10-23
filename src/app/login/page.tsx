@@ -1,9 +1,13 @@
 import { cookies } from "next/headers";
+import Link from "next/link";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { LoginSubmitButton } from "./submit-button";
 import { PageLoading } from "@/components/page-loading";
 import { createSessionToken, SESSION_COOKIE, SESSION_MAX_AGE, verifyPassword } from "@/lib/auth";
+
+export const metadata: Metadata = { title: "운영자 로그인 · StockLab", robots: { index: false, follow: false } };
 
 async function login(formData: FormData) {
   "use server";
@@ -43,7 +47,11 @@ async function LoginContent({ searchParams }: { searchParams: Promise<{ error?: 
         <div className="mb-1 text-xl font-extrabold tracking-tight">
           Stock<span className="text-[var(--accent)]">Lab</span>
         </div>
-        <p className="mb-6 text-sm text-[var(--text-dim)]">계속하려면 비밀번호를 입력하세요.</p>
+        <p className="mb-6 text-sm text-[var(--text-dim)]">노트 전문 열람과 AI 실행·콘텐츠 관리를 위한 운영자 로그인입니다.</p>
+
+        <Link href="/" className="mb-6 block rounded-xl border border-[var(--border)] px-4 py-3 text-center text-sm text-[var(--accent)] hover:bg-[var(--surface-2)]">
+          로그인 없이 둘러보기 →
+        </Link>
 
         <form action={login} className="space-y-3">
           <label htmlFor="password" className="block text-xs font-bold text-[var(--text-dim)]">

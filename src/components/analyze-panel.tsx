@@ -39,7 +39,7 @@ function CitedText({ text }: { text: string }) {
   );
 }
 
-export function AnalyzePanel({ symbol, initial }: { symbol: string; initial: Display | null }) {
+export function AnalyzePanel({ symbol, initial, canManage = false }: { symbol: string; initial: Display | null; canManage?: boolean }) {
   const [display, setDisplay] = useState<Display | null>(initial);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,13 +71,13 @@ export function AnalyzePanel({ symbol, initial }: { symbol: string; initial: Dis
     <div>
       <div className="flex items-center gap-3">
         <h2 className="text-[13px] font-bold uppercase tracking-wider text-[var(--text-dim)]">AI 분석</h2>
-        <button
+        {canManage ? <button
           onClick={run}
           disabled={loading}
           className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-bold text-white hover:brightness-110 disabled:opacity-50"
         >
           {loading ? "분석 중… (수십 초 걸릴 수 있어요)" : "✦ AI 분석 실행"}
-        </button>
+        </button> : <Link href="/login" className="text-xs text-[var(--accent)] underline">분석 실행은 운영자 로그인 후 가능</Link>}
       </div>
 
       {error && (

@@ -1,9 +1,17 @@
 import Link from "next/link";
+import { Suspense } from "react";
+import { PageLoading } from "@/components/page-loading";
+import { requireOperator } from "@/lib/operator";
 import { NoteEditor } from "@/components/note-editor";
 import { DbSetupNotice } from "@/components/db-setup-notice";
 import { hasDb } from "@/lib/db";
 
 export default function NewNotePage() {
+  return <Suspense fallback={<PageLoading />}><NewNoteContent /></Suspense>;
+}
+
+async function NewNoteContent() {
+  await requireOperator();
   if (!hasDb()) return <DbSetupNotice />;
   return (
     <div>

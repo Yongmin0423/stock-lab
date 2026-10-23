@@ -1,9 +1,12 @@
+import { operatorApiError } from "@/lib/operator";
 import { NextResponse } from "next/server";
 import { finnhub } from "@/lib/providers/finnhub";
 import { kis } from "@/lib/providers/kis";
 import { isKrOnlySearchQuery } from "@/lib/providers/types";
 
 export async function GET(req: Request) {
+  const denied = await operatorApiError();
+  if (denied) return denied;
   const q = new URL(req.url).searchParams.get("q")?.trim();
   if (!q || q.length < 1) return NextResponse.json([]);
 

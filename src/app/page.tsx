@@ -19,6 +19,7 @@ import { getMarketBar } from "@/lib/market-overview";
 import { isMarketOpen } from "@/lib/market-hours";
 import type { Quote } from "@/lib/providers/types";
 import { evaluateRules } from "@/lib/rules";
+import { isOperator } from "@/lib/operator";
 
 export default function Dashboard() {
   return (
@@ -29,6 +30,7 @@ export default function Dashboard() {
 }
 
 async function DashboardContent() {
+  const operator = await isOperator();
   if (!hasDb()) return <DbSetupNotice />;
 
   let quotes: Quote[];
@@ -46,7 +48,7 @@ async function DashboardContent() {
     await latestVerdicts(),
     await listEnabledRules(),
     await latestBriefing(),
-    (await listNotes()).slice(0, 3),
+    operator ? (await listNotes()).slice(0, 3) : [],
     await latestDiscovery(),
   ];
 
@@ -111,12 +113,16 @@ async function DashboardContent() {
         </Link>
       )}
 
-      <div className="mb-4 flex items-center gap-2">
+      {operator && <div className="mb-4 flex items-center gap-2">
         <SearchDialog existing={symbols} />
         <RefreshQuotesButton />
-      </div>
+      </div>}
 
-      {quotes.length > 0 && <MarketQuestion />}
+      {quotes.length > 0 && (operator ? <MarketQuestion /> : (
+        <p className="mb-4 text-sm text-[var(--text-faint)]">
+          저장된 브리핑·발굴 결과는 누구나 읽을 수 있습니다. AI 질문과 생성은 <Link href="/login" className="text-[var(--accent)] underline">운영자 로그인</Link> 후 이용할 수 있습니다.
+        </p>
+      ))}
 
       {hasMock && (
         <div className="mb-4 rounded-xl border border-[rgba(217,166,63,0.4)] bg-[rgba(217,166,63,0.08)] px-4 py-3 text-sm text-[var(--gold)]">
@@ -135,7 +141,7 @@ async function DashboardContent() {
       </h2>
 
       {quotes.length === 0 ? (
-        <EmptyState />
+        operator ? <EmptyState /> : <p className="text-sm text-[var(--text-faint)]">등록된 관심 종목이 없습니다.</p>
       ) : (
         <div className="grid gap-3 md:grid-cols-3">
           {quotes.map((q) => {
@@ -162,6 +168,7 @@ async function DashboardContent() {
                 closes={extras.closes[q.symbol] ?? []}
                 passedRules={passed}
                 verdict={verdicts[q.symbol]}
+                canManage={operator}
               />
             );
           })}
@@ -242,7 +249,7 @@ async function DashboardContent() {
             </Link>
           )}
         </div>
-        <div>
+        {operator && <div>
           <h2 className="mb-3 text-[13px] font-bold uppercase tracking-wider text-[var(--text-dim)]">
             최근 노트
           </h2>
@@ -271,7 +278,7 @@ async function DashboardContent() {
               반영하기 시작합니다 — 이 앱의 심장이에요 →
             </Link>
           )}
-        </div>
+        </div>}
       </div>
     </div>
   );

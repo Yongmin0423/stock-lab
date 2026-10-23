@@ -1,9 +1,12 @@
+import { operatorApiError } from "@/lib/operator";
 import { NextResponse } from "next/server";
 import { getQuoteCached } from "@/lib/cache";
 import { getWatchlist } from "@/lib/db/queries/stocks";
 
 /** watchlist 전 종목 시세를 TTL과 관계없이 실제 공급자에서 다시 조회한다. */
 export async function POST() {
+  const denied = await operatorApiError();
+  if (denied) return denied;
   try {
     const list = await getWatchlist();
     let refreshed = 0;

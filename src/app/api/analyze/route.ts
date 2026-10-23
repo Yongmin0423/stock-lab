@@ -1,3 +1,4 @@
+import { operatorApiError } from "@/lib/operator";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { hasAiKey, mockAnalysis, runAnalysis, type AnalysisContext } from "@/lib/ai/analyze";
@@ -12,6 +13,8 @@ import { evaluateRules } from "@/lib/rules";
 export const maxDuration = 60; // Vercel 배포 시 AI 응답 대기 여유
 
 export async function POST(req: Request) {
+  const denied = await operatorApiError();
+  if (denied) return denied;
   try {
     const { symbol } = (await req.json()) as { symbol?: string };
     if (!symbol) return NextResponse.json({ error: "symbol 필요" }, { status: 400 });
