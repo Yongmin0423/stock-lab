@@ -80,6 +80,10 @@ async function openaiJson({ system, user, schemaName, schema, maxTokens = 2000, 
         ? (process.env.OPENAI_MODEL_BRIEFING ?? "gpt-5.6-terra")
         : (process.env.OPENAI_MODEL ?? "gpt-5.6-terra");
 
+  const reasoningBriefing = tier === "briefing" && /^(gpt-[56]|o[134])(?:[.-]|$)/.test(model);
+  // 추론 토큰도 출력 한도에 포함되므로 브리핑 본문을 쓸 여유를 남긴다.
+  const completionTokens = reasoningBriefing ? Math.max(maxTokens, 12000) : maxTokens;
+
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -88,7 +92,8 @@ async function openaiJson({ system, user, schemaName, schema, maxTokens = 2000, 
     },
     body: JSON.stringify({
       model,
-      max_completion_tokens: maxTokens,
+      max_completion_tokens: completionTokens,
+      ...(reasoningBriefing ? { reasoning_effort: "low" } : {}),
       response_format: { type: "json_object" },
       messages: [
         {
@@ -103,7 +108,12 @@ async function openaiJson({ system, user, schemaName, schema, maxTokens = 2000, 
 
   const d = await res.json();
   if (!res.ok) throw new Error(`OpenAI ${res.status}: ${d.error?.message ?? "요청 실패"}`);
-  const content = d.choices?.[0]?.message?.content;
-  if (!content) throw new Error("OpenAI 응답이 비어 있습니다");
+  const choice = d.choices?.[0];
+  const details = `model=${model}, finish_reason=${choice?.finish_reason ?? "unknown"}, completion_tokens=${d.usage?.completion_tokens ?? "unknown"}, reasoning_tokens=${d.usage?.completion_tokens_details?.reasoning_tokens ?? "unknown"}`;
+  if (choice?.finish_reason === "length") {
+    throw new Error(`OpenAI 출력 토큰 한도 초과 (${details})`);
+  }
+  const content = choice?.message?.content;
+  if (!content?.trim()) throw new Error(`OpenAI 응답이 비어 있습니다 (${details})`);
   return JSON.parse(content);
 }
