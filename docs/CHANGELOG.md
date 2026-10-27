@@ -1,5 +1,9 @@
 ### 2026-10-27
 
+- **Clarity 방문 분석 동의 안내 추가** — `src/components/clarity-analytics.tsx`, `src/lib/clarity.ts`, `src/app/layout.tsx`, `tests/clarity.test.mjs`, `README.md`
+  - 원인/이유: 분석 쿠키를 항상 denied로 보내 같은 브라우저의 방문도 분리 집계됐으며, 방문자에게 수집 목적을 알리고 허용·거절을 선택할 수 있게 해야 했다.
+  - 수정: 화면 하단에 수집 목적·Microsoft 전송·마스킹 안내와 같은 비중의 허용/거절 버튼을 추가했다. 선택 전·거절 시에는 Clarity를 로드하지 않고, 허용 시 분석 쿠키만 켠다. 선택 저장·복원, 다른 탭의 변경 반영, 하단 설정 버튼, 철회 시 수집 중단과 재허용을 지원한다. Sentry 설정은 유지한다.
+
 - **Clarity 방문 분석 연결** — `src/components/clarity-analytics.tsx`, `src/app/layout.tsx`, `tests/clarity.test.mjs`, `README.md`
   - 원인/이유: 오류 분석용 Sentry와 별도로 방문자의 화면 이동·클릭·스크롤을 확인할 필요가 있었다.
   - 수정: 제공받은 프로젝트 ID로 비동기 수집 코드를 공통 레이아웃에 한 번 연결하고 환경 태그를 추가했다. 본문은 기본 마스킹하고 고정 로고·메뉴만 표시한다. 광고·분석 쿠키는 denied로 시작하며, Sentry 설정은 유지한다.

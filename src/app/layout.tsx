@@ -30,7 +30,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ko">
       <body data-clarity-mask="true">
-        <ClarityAnalytics />
         <header className="sticky top-0 z-10 flex h-14 items-center gap-6 border-b border-[var(--border)] bg-[rgba(14,17,22,0.92)] px-6 backdrop-blur">
           <div data-clarity-unmask="true" className="shrink-0 text-base font-extrabold tracking-tight">
             주식<span className="text-[var(--accent)]">갈피</span>
@@ -59,7 +58,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </header>
         <main className="mx-auto max-w-5xl p-6">{children}</main>
         <footer className="py-8 text-center text-[11px] text-[var(--text-faint)]">
-          본 서비스의 모든 분석은 투자 조언이 아닌 개인 학습용 참고 자료입니다.
+          <p>본 서비스의 모든 분석은 투자 조언이 아닌 개인 학습용 참고 자료입니다.</p>
+          <ClarityAnalytics />
         </footer>
       </body>
     </html>
