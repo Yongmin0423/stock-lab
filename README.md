@@ -65,3 +65,11 @@ src/
 - 배포 후 Google Search Console·네이버 서치어드바이저에서 소유권을 확인하고 사이트맵을 제출합니다.
 - 로그인·설정·노트 작성 화면은 `noindex`이며, 노트 메타 설명도 공개 미리보기 범위만 사용합니다.
 - Cache Components 스트리밍 이후 없는 종목을 판별하면 HTTP 200일 수 있지만, `notFound()`의 `noindex`로 색인에서 제외합니다.
+
+## Sentry 오류 수집
+
+- Sentry 조직/프로젝트: `youngmin/jusik-galpi`. 공개 DSN이 기본 연결돼 있으며 `NEXT_PUBLIC_SENTRY_DSN`으로 변경할 수 있습니다.
+- 브라우저·서버·Edge 오류, 수동 브리핑과 Cron의 처리된 실패를 수집합니다. 성능 추적은 개발 100%, 운영 10%로 샘플링합니다.
+- 쿠키·헤더·요청 본문·사용자 정보·breadcrumbs·extra 및 span 속성은 전송 전에 제거합니다. 세션 녹화와 로그 수집은 활성화하지 않습니다.
+- Vercel 환경/커밋을 오류의 environment/release로 구분합니다. 로컬 환경에서는 development로 표시됩니다.
+- 운영 소스맵 자동 업로드는 `SENTRY_AUTH_TOKEN` 등록 후 활성화됩니다. 소스 코드가 포함될 수 있어 업로드를 승인한 뒤 Vercel에 비밀 토큰을 등록합니다. 이 토큰은 `NEXT_PUBLIC_` 접두어를 붙이지 않습니다.

@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { operatorApiError } from "@/lib/operator";
 import { NextResponse } from "next/server";
 import { generateBriefing } from "@/lib/briefing-run";
@@ -14,6 +15,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ id: row.id, isMock });
   } catch (e) {
     console.error("briefing 실패:", e);
+    Sentry.captureException(e, { tags: { task: "manual-briefing" } });
     return NextResponse.json({ error: e instanceof Error ? e.message : "브리핑 실패" }, { status: 500 });
   }
 }

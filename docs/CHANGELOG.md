@@ -1,5 +1,9 @@
 ### 2026-10-27
 
+- **Sentry 오류 수집 연결** — `next.config.ts`, `src/instrumentation.ts`, `src/instrumentation-client.ts`, `src/sentry.server.config.ts`, `src/sentry.edge.config.ts`, `src/lib/sentry-options.ts`, `src/app/global-error.tsx`, `src/app/stock/sentry-verify/`, `src/app/api/briefing/route.ts`, `src/app/api/cron/`, `tests/sentry.test.mjs`, `README.md`
+  - 원인/이유: 브라우저·서버 오류와 Cron에서 잡아 반환한 실패를 Vercel 로그로만 확인할 수 있어 장애를 놓치기 쉬웠다.
+  - 수정: youngmin/jusik-galpi 프로젝트에 SDK를 연결하고 런타임별 초기화·화면 오류 경계·처리된 브리핑/Cron 실패 보고를 추가했다. 요청 본문·인증 정보와 추적 속성은 제거하며 소스맵 업로드는 비밀 토큰 등록 전까지 비활성화한다. 로컬 브라우저·서버 오류 2건 수집을 확인했으며 운영 소스맵 검증 경로는 확인 직후 제거한다.
+
 - **앱 아이콘을 기존 주가 그래프로 복원** — `public/icon.svg`, `public/icon-192.png`, `public/icon-512.png`, `public/manifest.json`, `src/app/layout.tsx`
   - 원인/이유: 책갈피 로고 시안 대신 기존 앱 아이콘을 유지하기로 했다.
   - 수정: SVG·PNG 아이콘과 아이콘 참조를 기존 상태로 복원하고 서비스 이름 주식갈피는 유지했다.

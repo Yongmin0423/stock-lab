@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { connection, NextResponse } from "next/server";
 import { verifyCronAuthorization } from "@/lib/auth";
 import { refreshScreeningFundamentals } from "@/lib/screening-refresh";
@@ -15,6 +16,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: true, ...(await refreshScreeningFundamentals()) });
   } catch (e) {
     console.error("screening refresh 실패:", e);
+    Sentry.captureException(e, { tags: { task: "cron-screening" } });
     return NextResponse.json({ error: e instanceof Error ? e.message : "갱신 실패" }, { status: 500 });
   }
 }

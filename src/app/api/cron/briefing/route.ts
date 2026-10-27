@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { NextResponse } from "next/server";
 import { verifyCronAuthorization } from "@/lib/auth";
 import { hasAiKey } from "@/lib/ai/analyze";
@@ -31,12 +32,14 @@ export async function GET(req: Request) {
       } catch (e) {
         discovery = { ok: false, error: e instanceof Error ? e.message : "발굴 실패" };
         console.error("cron discovery 실패:", e);
+        Sentry.captureException(e, { tags: { task: "cron-discovery" } });
       }
     }
 
     return NextResponse.json({ ok: true, id: row.id, slot, isMock, discovery });
   } catch (e) {
     console.error("cron briefing 실패:", e);
+    Sentry.captureException(e, { tags: { task: "cron-briefing" } });
     return NextResponse.json({ error: e instanceof Error ? e.message : "실패" }, { status: 500 });
   }
 }
