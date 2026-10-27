@@ -1,5 +1,13 @@
 ### 2026-10-27
 
+- **앱 아이콘을 기존 주가 그래프로 복원** — `public/icon.svg`, `public/icon-192.png`, `public/icon-512.png`, `public/manifest.json`, `src/app/layout.tsx`
+  - 원인/이유: 책갈피 로고 시안 대신 기존 앱 아이콘을 유지하기로 했다.
+  - 수정: SVG·PNG 아이콘과 아이콘 참조를 기존 상태로 복원하고 서비스 이름 주식갈피는 유지했다.
+
+- **서비스 이름을 주식갈피로 변경** — `src/app/layout.tsx`, `src/app/page.tsx`, `src/app/login/page.tsx`, `src/lib/seo.ts`, `public/manifest.json`, `src/app/api/export-notes/route.ts`, `README.md`
+  - 원인/이유: StockLab이라는 이름이 기존 서비스와 겹쳐, 주식 공부와 리서치라는 용도를 드러내는 고유한 이름이 필요했다.
+  - 수정: 화면 로고·검색 제목·Open Graph·설치 앱 이름·노트 백업 이름을 주식갈피로 통일했다. 로그인 제목은 공통 템플릿을 사용해 브랜드 중복을 없앴다. 기존 운영 도메인과 세션 식별자는 유지한다.
+
 - **종목 상세의 정상 페이지 noindex 문제 보완** — `src/app/stock/[symbol]/page.tsx`, `src/lib/db/queries/stocks.ts`
   - 원인/이유: 첫 운영 배포 후 등록된 종목에도 스트리밍 404와 noindex가 포함되는 현상을 확인했다. 메타데이터와 본문의 종목 확인이 프리렌더·공유 캐시에 영향을 받지 않도록 요청 단위로 맞출 필요가 있었다.
   - 수정: 종목 메타데이터는 요청 시점에 조회하고 조회 결과는 React 요청 단위 캐시로 공유한다. 기존 종목 경로 디코딩도 유지한다.

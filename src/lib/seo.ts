@@ -14,9 +14,9 @@ export function pageMetadata(title: string, description: string, path: string): 
     description,
     alternates: { canonical: new URL(path, base).href },
     openGraph: {
-      title: `${title} | StockLab`,
+      title: `${title} | 주식갈피`,
       description,
-      siteName: "StockLab",
+      siteName: "주식갈피",
       locale: "ko_KR",
       type: "website",
       url: new URL(path, base).href,

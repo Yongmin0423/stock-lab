@@ -7,7 +7,7 @@ import { LoginSubmitButton } from "./submit-button";
 import { PageLoading } from "@/components/page-loading";
 import { createSessionToken, SESSION_COOKIE, SESSION_MAX_AGE, verifyPassword } from "@/lib/auth";
 
-export const metadata: Metadata = { title: "운영자 로그인 · StockLab", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "운영자 로그인", robots: { index: false, follow: false } };
 
 async function login(formData: FormData) {
   "use server";
@@ -45,7 +45,7 @@ async function LoginContent({ searchParams }: { searchParams: Promise<{ error?: 
     <div className="mx-auto flex min-h-[65vh] max-w-sm items-center">
       <div className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl shadow-black/20">
         <div className="mb-1 text-xl font-extrabold tracking-tight">
-          Stock<span className="text-[var(--accent)]">Lab</span>
+          주식<span className="text-[var(--accent)]">갈피</span>
         </div>
         <p className="mb-6 text-sm text-[var(--text-dim)]">노트 전문 열람과 AI 실행·콘텐츠 관리를 위한 운영자 로그인입니다.</p>
 

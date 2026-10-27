@@ -1,6 +1,6 @@
 {
-  "name": "StockLab",
-  "short_name": "StockLab",
+  "name": "주식갈피",
+  "short_name": "주식갈피",
   "description": "내 투자 공부가 AI의 판단 기준이 되는 개인 리서치",
   "start_url": "/",
   "scope": "/",

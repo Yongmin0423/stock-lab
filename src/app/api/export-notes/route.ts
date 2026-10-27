@@ -8,7 +8,7 @@ export async function GET() {
   const notes = await listNotes();
 
   const md = [
-    `# StockLab 지식 노트 백업`,
+    `# 주식갈피 지식 노트 백업`,
     `> ${new Date().toISOString().slice(0, 10)} · 총 ${notes.length}개`,
     "",
     ...notes.map((n) =>
@@ -31,7 +31,7 @@ export async function GET() {
   return new Response(md, {
     headers: {
       "Content-Type": "text/markdown; charset=utf-8",
-      "Content-Disposition": `attachment; filename="stocklab-notes-${new Date().toISOString().slice(0, 10)}.md"`,
+      "Content-Disposition": `attachment; filename="jusik-galpi-notes-${new Date().toISOString().slice(0, 10)}.md"`,
     },
   });
 }

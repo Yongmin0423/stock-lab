@@ -7,7 +7,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: siteUrl(),
-  title: { default: "StockLab | 주식 리서치와 시장 브리핑", template: "%s | StockLab" },
+  title: { default: "주식갈피 | 주식 리서치와 시장 브리핑", template: "%s | 주식갈피" },
   description: "내 투자 공부가 AI의 판단 기준이 되는 개인 리서치 대시보드",
   manifest: "/manifest.json",
   icons: {
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "StockLab",
+    title: "주식갈피",
   },
 };
 
@@ -31,7 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <header className="sticky top-0 z-10 flex h-14 items-center gap-6 border-b border-[var(--border)] bg-[rgba(14,17,22,0.92)] px-6 backdrop-blur">
           <div className="shrink-0 text-base font-extrabold tracking-tight">
-            Stock<span className="text-[var(--accent)]">Lab</span>
+            주식<span className="text-[var(--accent)]">갈피</span>
           </div>
           <nav className="flex min-w-0 gap-1 overflow-x-auto whitespace-nowrap text-sm text-[var(--text-dim)]">
             <Link href="/" className="rounded-lg px-3 py-1.5 hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
