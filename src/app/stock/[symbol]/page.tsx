@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { CandleChart } from "@/components/candle-chart";
@@ -18,7 +19,8 @@ import { isOperator } from "@/lib/operator";
 import { notePreview } from "@/lib/note-preview";
 
 export async function generateMetadata({ params }: { params: Promise<{ symbol: string }> }) {
-  const { symbol } = await params;
+  await connection();
+  const symbol = decodeURIComponent((await params).symbol);
   const stock = await getStock(symbol);
   if (!stock) notFound();
   return pageMetadata(
@@ -38,7 +40,7 @@ export default function StockPage(props: { params: Promise<{ symbol: string }> }
 
 async function StockContent({ params }: { params: Promise<{ symbol: string }> }) {
   const operator = await isOperator();
-  const { symbol } = await params;
+  const symbol = decodeURIComponent((await params).symbol);
   const stock = await getStock(symbol);
   if (!stock) notFound();
 
