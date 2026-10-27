@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { OperatorMenu } from "@/components/operator-menu";
+import { ClarityAnalytics } from "@/components/clarity-analytics";
 import { siteUrl } from "@/lib/seo";
 import "./globals.css";
 
@@ -28,12 +29,13 @@ export const viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko">
-      <body>
+      <body data-clarity-mask="true">
+        <ClarityAnalytics />
         <header className="sticky top-0 z-10 flex h-14 items-center gap-6 border-b border-[var(--border)] bg-[rgba(14,17,22,0.92)] px-6 backdrop-blur">
-          <div className="shrink-0 text-base font-extrabold tracking-tight">
+          <div data-clarity-unmask="true" className="shrink-0 text-base font-extrabold tracking-tight">
             주식<span className="text-[var(--accent)]">갈피</span>
           </div>
-          <nav className="flex min-w-0 gap-1 overflow-x-auto whitespace-nowrap text-sm text-[var(--text-dim)]">
+          <nav data-clarity-unmask="true" className="flex min-w-0 gap-1 overflow-x-auto whitespace-nowrap text-sm text-[var(--text-dim)]">
             <Link href="/" className="rounded-lg px-3 py-1.5 hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
               대시보드
             </Link>
