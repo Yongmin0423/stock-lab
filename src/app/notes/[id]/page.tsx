@@ -1,3 +1,4 @@
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -10,6 +11,15 @@ import { hasDb } from "@/lib/db";
 import { getNote } from "@/lib/db/queries/notes";
 import { isOperator } from "@/lib/operator";
 import { notePreview } from "@/lib/note-preview";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const id = Number((await params).id);
+  if (!Number.isSafeInteger(id) || id < 1) notFound();
+  if (!hasDb()) return pageMetadata("투자 공부 노트", "투자 공부 노트의 공개 미리보기를 확인하세요.", `/notes/${id}`);
+  const note = await getNote(id);
+  if (!note) notFound();
+  return pageMetadata(note.title, notePreview(note.content), `/notes/${id}`);
+}
 
 export default function EditNotePage(props: { params: Promise<{ id: string }> }) {
   return (

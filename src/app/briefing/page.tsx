@@ -1,3 +1,5 @@
+import { pageMetadata } from "@/lib/seo";
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Suspense } from "react";
 import { BriefingGenerate } from "@/components/briefing-generate";
@@ -9,6 +11,21 @@ import { changeColorClass, formatChange } from "@/lib/format";
 import { isOperator } from "@/lib/operator";
 
 const SLOT_LABEL = { morning: "🌅 아침", evening: "🌆 저녁" } as const;
+
+export async function generateMetadata({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
+  const { id } = await searchParams;
+  if (!id) return pageMetadata("주식 시장 브리핑", "한국·미국 시장의 아침·저녁 요약과 관심 종목의 변화, 분석 근거를 확인하세요.", "/briefing");
+  const briefingId = Number(id);
+  if (!Number.isSafeInteger(briefingId) || briefingId < 1 || !hasDb()) notFound();
+  const briefing = await getBriefing(briefingId);
+  if (!briefing) notFound();
+  const date = briefing.createdAt.toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" });
+  return pageMetadata(
+    `${date} ${briefing.slot === "morning" ? "아침" : "저녁"} 시장 브리핑`,
+    briefing.marketSummary?.slice(0, 160) || "시장 요약과 종목별 주요 변화를 확인하세요.",
+    `/briefing?id=${briefing.id}`,
+  );
+}
 
 export default function BriefingPage(props: { searchParams: Promise<{ id?: string }> }) {
   return (

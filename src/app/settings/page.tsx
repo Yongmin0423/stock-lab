@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { DbSetupNotice } from "@/components/db-setup-notice";
 import { PageLoading } from "@/components/page-loading";
@@ -5,6 +6,8 @@ import { NewRuleButton, RuleEditor } from "@/components/rule-editor";
 import { hasDb } from "@/lib/db";
 import { listRules } from "@/lib/db/queries/rules";
 import { requireOperator } from "@/lib/operator";
+
+export const metadata: Metadata = { title: "설정", robots: { index: false, follow: false } };
 
 export default function SettingsPage() {
   return (

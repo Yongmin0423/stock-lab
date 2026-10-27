@@ -1,22 +1,32 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { eq } from "drizzle-orm";
 import { CandleChart } from "@/components/candle-chart";
 import { NewsList } from "@/components/news-list";
 import { PageLoading } from "@/components/page-loading";
 import { getFundamentalsCached, getNewsCached, getQuoteCached } from "@/lib/cache";
 import { AnalyzePanel } from "@/components/analyze-panel";
-import { getDb, hasDb } from "@/lib/db";
 import { listAnalyses } from "@/lib/db/queries/analyses";
 import { findRelevantNotes } from "@/lib/db/queries/notes";
 import { listEnabledRules } from "@/lib/db/queries/rules";
-import { stocks } from "@/lib/db/schema";
+import { getStock } from "@/lib/db/queries/stocks";
+import { pageMetadata } from "@/lib/seo";
 import { evaluateRules } from "@/lib/rules";
 import { changeColorClass, formatChange, formatMarketCap, formatMetric, formatPrice } from "@/lib/format";
 import { isMarketOpen } from "@/lib/market-hours";
 import { isOperator } from "@/lib/operator";
 import { notePreview } from "@/lib/note-preview";
+
+export async function generateMetadata({ params }: { params: Promise<{ symbol: string }> }) {
+  const { symbol } = await params;
+  const stock = await getStock(symbol);
+  if (!stock) notFound();
+  return pageMetadata(
+    `${stock.name}(${symbol.split(":").pop()}) 주가·재무·분석`,
+    `${stock.name}의 주가, 재무 지표, 관련 뉴스와 저장된 AI 분석 근거를 확인하세요.`,
+    `/stock/${encodeURIComponent(stock.symbol)}`,
+  );
+}
 
 export default function StockPage(props: { params: Promise<{ symbol: string }> }) {
   return (
@@ -28,22 +38,9 @@ export default function StockPage(props: { params: Promise<{ symbol: string }> }
 
 async function StockContent({ params }: { params: Promise<{ symbol: string }> }) {
   const operator = await isOperator();
-  const symbol = decodeURIComponent((await params).symbol);
-  if (!hasDb()) notFound();
-
-  const db = getDb();
-  const stock = await db.query.stocks.findFirst({ where: eq(stocks.symbol, symbol) });
-  if (!stock) {
-    return (
-      <div className="rounded-xl border border-dashed border-[var(--border)] p-10 text-center text-sm text-[var(--text-dim)]">
-        watchlist에 없는 종목이에요.{" "}
-        <Link href="/" className="text-[var(--accent)] underline">
-          대시보드에서 추가
-        </Link>
-        해주세요.
-      </div>
-    );
-  }
+  const { symbol } = await params;
+  const stock = await getStock(symbol);
+  if (!stock) notFound();
 
   const quoteFailureRef: { value: { message: string; usingCache: boolean } | null } = { value: null };
   const quote = await getQuoteCached(symbol, stock.name, false, (message, usingCache) => {

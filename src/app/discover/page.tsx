@@ -1,3 +1,4 @@
+import { pageMetadata } from "@/lib/seo";
 import { Suspense } from "react";
 import { DbSetupNotice } from "@/components/db-setup-notice";
 import { DiscoverPanel } from "@/components/discover-panel";
@@ -6,6 +7,8 @@ import { hasDb } from "@/lib/db";
 import { latestDiscovery } from "@/lib/db/queries/discoveries";
 import { getWatchlist } from "@/lib/db/queries/stocks";
 import { isOperator } from "@/lib/operator";
+
+export const metadata = pageMetadata("투자 기준에 따른 종목 발굴", "재무 지표와 투자 원칙을 바탕으로 발굴한 종목과 선정 근거를 확인하세요.", "/discover");
 
 export default function DiscoverPage() {
   return (

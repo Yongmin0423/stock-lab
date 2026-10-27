@@ -1,3 +1,4 @@
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { Suspense } from "react";
 import { DbSetupNotice } from "@/components/db-setup-notice";
@@ -7,6 +8,17 @@ import { listNotes, tagCounts } from "@/lib/db/queries/notes";
 import { timeAgo } from "@/lib/format";
 import { isOperator } from "@/lib/operator";
 import { notePreview } from "@/lib/note-preview";
+
+export async function generateMetadata({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+  const params = await searchParams;
+  const query = new URLSearchParams();
+  for (const key of ["tag", "q"]) {
+    if (params[key]) query.set(key, params[key]);
+  }
+  const metadata = pageMetadata("투자 공부 노트", "투자 원칙과 기업 분석을 정리한 공부 노트의 공개 미리보기를 확인하세요.", `/notes${query.size ? `?${query}` : ""}`);
+  return { ...metadata, ...(params.tag || params.q ? { robots: { index: false, follow: true } } : {}) };
+}
+
 
 export default function NotesPage(props: {
   searchParams: Promise<{ tag?: string; q?: string }>;

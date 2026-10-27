@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { OperatorMenu } from "@/components/operator-menu";
+import { siteUrl } from "@/lib/seo";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "StockLab",
+  metadataBase: siteUrl(),
+  title: { default: "StockLab | 주식 리서치와 시장 브리핑", template: "%s | StockLab" },
   description: "내 투자 공부가 AI의 판단 기준이 되는 개인 리서치 대시보드",
   manifest: "/manifest.json",
   icons: {

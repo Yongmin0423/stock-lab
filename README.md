@@ -56,3 +56,12 @@ src/
     format.ts     # 통화/등락 포맷 (상승=빨강, 하락=파랑)
     market-hours.ts
 ```
+
+## 검색 노출 설정
+
+- 기본 대표 주소는 `https://stock-lab-ndgw.vercel.app`입니다. 도메인을 바꾸면 배포 환경에 `SITE_URL=https://실제운영도메인`을 지정하고 재배포합니다. 경로 없이 대표 도메인 하나를 사용합니다.
+- 대표 주소는 canonical·Open Graph·사이트맵에 동일하게 사용합니다.
+- `/sitemap.xml`에는 주요 공개 페이지, 등록된 관심 종목, 공개 미리보기가 있는 노트와 저장된 브리핑을 포함합니다.
+- 배포 후 Google Search Console·네이버 서치어드바이저에서 소유권을 확인하고 사이트맵을 제출합니다.
+- 로그인·설정·노트 작성 화면은 `noindex`이며, 노트 메타 설명도 공개 미리보기 범위만 사용합니다.
+- Cache Components 스트리밍 이후 없는 종목을 판별하면 HTTP 200일 수 있지만, `notFound()`의 `noindex`로 색인에서 제외합니다.

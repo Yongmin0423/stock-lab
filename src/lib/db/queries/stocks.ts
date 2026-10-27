@@ -1,6 +1,7 @@
+import { cacheLife } from "next/cache";
 import { asc, eq } from "drizzle-orm";
 import { getQuoteCached } from "@/lib/cache";
-import { getDb } from "@/lib/db";
+import { getDb, hasDb } from "@/lib/db";
 import { stocks } from "@/lib/db/schema";
 import type { Market, Quote } from "@/lib/providers/types";
 
@@ -62,4 +63,12 @@ export async function insertStock(symbol: string, name: string, market: Market) 
 export async function deleteStock(symbol: string) {
   const db = getDb();
   await db.delete(stocks).where(eq(stocks.symbol, symbol));
+}
+
+/** 메타데이터와 본문에서 같은 등록 종목을 조회한다. */
+export async function getStock(symbol: string) {
+  "use cache";
+  cacheLife("minutes");
+  if (!hasDb()) return undefined;
+  return getDb().query.stocks.findFirst({ where: eq(stocks.symbol, symbol) });
 }

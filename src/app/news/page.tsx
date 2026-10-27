@@ -1,3 +1,4 @@
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { Suspense } from "react";
 import { DbSetupNotice } from "@/components/db-setup-notice";
@@ -16,6 +17,17 @@ function pageHref(page: number, symbol?: string) {
   const s = p.toString();
   return `/news${s ? `?${s}` : ""}`;
 }
+
+export async function generateMetadata({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+  const params = await searchParams;
+  const query = new URLSearchParams();
+  for (const key of ["symbol", "page"]) {
+    if (params[key]) query.set(key, params[key]);
+  }
+  const metadata = pageMetadata("관심 종목 주식 뉴스", "한국·미국 관심 종목의 최신 뉴스와 출처, AI 평가를 확인하세요.", `/news${query.size ? `?${query}` : ""}`);
+  return { ...metadata, ...(params.symbol ? { robots: { index: false, follow: true } } : {}) };
+}
+
 
 export default function NewsPage(props: {
   searchParams: Promise<{ symbol?: string; page?: string }>;

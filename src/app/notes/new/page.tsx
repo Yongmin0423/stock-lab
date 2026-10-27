@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { PageLoading } from "@/components/page-loading";
@@ -5,6 +6,8 @@ import { requireOperator } from "@/lib/operator";
 import { NoteEditor } from "@/components/note-editor";
 import { DbSetupNotice } from "@/components/db-setup-notice";
 import { hasDb } from "@/lib/db";
+
+export const metadata: Metadata = { title: "새 노트", robots: { index: false, follow: false } };
 
 export default function NewNotePage() {
   return <Suspense fallback={<PageLoading />}><NewNoteContent /></Suspense>;

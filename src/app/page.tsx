@@ -1,3 +1,4 @@
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { Suspense } from "react";
 import { DbSetupNotice } from "@/components/db-setup-notice";
@@ -20,6 +21,8 @@ import { isMarketOpen } from "@/lib/market-hours";
 import type { Quote } from "@/lib/providers/types";
 import { evaluateRules } from "@/lib/rules";
 import { isOperator } from "@/lib/operator";
+
+export const metadata = pageMetadata("주식 리서치 대시보드", "한국·미국 관심 종목의 시세와 재무 지표, AI 분석 및 시장 브리핑을 확인하세요.", "/");
 
 export default function Dashboard() {
   return (

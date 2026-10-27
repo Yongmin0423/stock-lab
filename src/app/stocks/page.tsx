@@ -1,3 +1,4 @@
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { Suspense } from "react";
 import { addStockAction } from "@/app/actions";
@@ -18,6 +19,17 @@ function pageHref(page: number, q?: string, m?: string) {
   const s = p.toString();
   return `/stocks${s ? `?${s}` : ""}`;
 }
+
+export async function generateMetadata({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+  const params = await searchParams;
+  const query = new URLSearchParams();
+  for (const key of ["q", "m", "page"]) {
+    if (params[key]) query.set(key, params[key]);
+  }
+  const metadata = pageMetadata("한국·미국 전체 종목", "한국 주식과 미국 주요 종목을 이름·코드·시장별로 찾아보세요.", `/stocks${query.size ? `?${query}` : ""}`);
+  return { ...metadata, ...(params.q || params.m ? { robots: { index: false, follow: true } } : {}) };
+}
+
 
 export default function StocksPage(props: {
   searchParams: Promise<{ page?: string; q?: string; m?: string }>;

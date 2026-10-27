@@ -1,3 +1,9 @@
+### 2026-10-27
+
+- **검색 노출 기본 설정 추가** — `src/lib/seo.ts`, `src/app/layout.tsx`, `src/app/**/page.tsx`, `src/app/robots.ts`, `src/app/sitemap.ts`, `src/lib/db/queries/stocks.ts`, `README.md`, `tests/seo.test.mjs`, `tests/seo-routes.test.mjs`
+  - 원인/이유: 공개 페이지가 같은 제목을 공유하고 canonical·사이트맵·robots가 없었으며, 미등록 종목도 안내 화면을 정상 페이지처럼 반환했다.
+  - 수정: SITE_URL 기반 대표 URL과 페이지별 제목·설명·Open Graph를 추가하고, 실제 등록 종목·노트·저장 브리핑의 사이트맵을 생성한다. 노트 설명은 공개 미리보기로 제한하고 설정·작성 화면은 noindex로 지정한다. 미등록 종목과 없는 상세 콘텐츠는 notFound 처리한다. 스트리밍이 먼저 시작되면 HTTP 200일 수 있으므로 noindex 응답을 검증한다.
+
 ### 2026-10-23
 
 - **로그인 화면에 공개 조회 진입 링크 추가** — `src/app/login/page.tsx`
