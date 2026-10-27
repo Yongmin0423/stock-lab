@@ -1,5 +1,9 @@
 ### 2026-10-27
 
+- **Sentry 운영 소스맵 검증 완료 및 임시 경로 제거** — `src/app/stock/sentry-verify/`
+  - 원인/이유: 운영 빌드의 브라우저 오류가 원본 파일·줄 번호로 복원되는지 실제 배포로 검증해야 했다.
+  - 수정: Production 오류 JUSIK-GALPI-3에서 verify-button.tsx:4 원본 코드가 표시되는 것을 확인하고, 의도적으로 오류를 발생시키는 임시 페이지를 제거했다. 로컬 브라우저·서버 오류는 JUSIK-GALPI-2/1로 수집됐다.
+
 - **Sentry 오류 수집 연결** — `next.config.ts`, `src/instrumentation.ts`, `src/instrumentation-client.ts`, `src/sentry.server.config.ts`, `src/sentry.edge.config.ts`, `src/lib/sentry-options.ts`, `src/app/global-error.tsx`, `src/app/stock/sentry-verify/`, `src/app/api/briefing/route.ts`, `src/app/api/cron/`, `tests/sentry.test.mjs`, `README.md`
   - 원인/이유: 브라우저·서버 오류와 Cron에서 잡아 반환한 실패를 Vercel 로그로만 확인할 수 있어 장애를 놓치기 쉬웠다.
   - 수정: youngmin/jusik-galpi 프로젝트에 SDK를 연결하고 런타임별 초기화·화면 오류 경계·처리된 브리핑/Cron 실패 보고를 추가했다. 요청 본문·인증 정보와 추적 속성은 제거하며 소스맵 업로드는 비밀 토큰 등록 전까지 비활성화한다. 로컬 브라우저·서버 오류 2건 수집을 확인했으며 운영 소스맵 검증 경로는 확인 직후 제거한다.
