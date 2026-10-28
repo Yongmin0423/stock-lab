@@ -46,13 +46,14 @@ async function DashboardContent() {
   }
 
   const symbols = watchlist.map((stock) => stock.symbol);
-  const [extras, verdicts, enabledRules, brief, recentNotes, discovery] = await Promise.all([
+  // 운영 빌드에서 캐시 조회가 동시에 실행되면 응답이 끝나지 않아 순차 조회한다.
+  const brief = await latestBriefing();
+  const discovery = await latestDiscovery();
+  const [extras, verdicts, enabledRules, recentNotes] = await Promise.all([
     getDashboardExtras(symbols),
     latestVerdicts(),
     listEnabledRules(),
-    latestBriefing(),
     operator ? listNotes().then((notes) => notes.slice(0, 3)) : [],
-    latestDiscovery(),
   ]);
 
   // 추천 리스트: 최근 발굴 결과 중 아직 watchlist에 없는 것만

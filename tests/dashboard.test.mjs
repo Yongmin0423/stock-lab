@@ -61,6 +61,7 @@ function deferred(value) {
   return new Promise((resolve) => pending.push(() => resolve(value)));
 }
 let marketCalls = 0;
+let briefingReady = false;
 const { default: Dashboard } = load("../src/app/page.tsx", {
   "@/lib/seo": { pageMetadata: () => ({}) },
   "@/lib/operator": { isOperator: async () => false },
@@ -70,8 +71,11 @@ const { default: Dashboard } = load("../src/app/page.tsx", {
     getDashboardExtras: () => deferred({ closes: {}, funds: {} }),
   },
   "@/lib/db/queries/analyses": { latestVerdicts: () => deferred({}) },
-  "@/lib/db/queries/briefings": { latestBriefing: () => deferred(null) },
-  "@/lib/db/queries/discoveries": { latestDiscovery: () => deferred(null) },
+  "@/lib/db/queries/briefings": { latestBriefing: async () => { await Promise.resolve(); briefingReady = true; return null; } },
+  "@/lib/db/queries/discoveries": { latestDiscovery: async () => {
+    assert.ok(briefingReady, "Cached briefing and discovery reads must not overlap");
+    return null;
+  } },
   "@/lib/db/queries/rules": { listEnabledRules: () => deferred([]) },
   "@/lib/db/queries/notes": { listNotes: () => { throw new Error("Public home must not load private notes"); } },
   "@/lib/market-overview": { getMarketBar: () => { marketCalls++; return new Promise(() => {}); } },
@@ -84,7 +88,7 @@ const { default: Dashboard } = load("../src/app/page.tsx", {
 const content = Dashboard().props.children;
 const body = content.type();
 await new Promise((resolve) => setImmediate(resolve));
-assert.equal(pending.length, 5, "Independent queries must all start before any finishes");
+assert.equal(pending.length, 3, "Independent queries must all start before any finishes");
 pending.forEach((resolve) => resolve());
 const tree = await body;
 const marketBoundary = tree.props.children[0];
