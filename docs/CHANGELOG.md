@@ -1,3 +1,10 @@
+### 2026-10-28
+
+- **홈 본문 로딩에서 외부 시세 API 대기 제거** — `src/app/page.tsx`, `src/lib/db/queries/stocks.ts`, `src/components/stock-card.tsx`, `tests/dashboard.test.mjs`
+  - 원인/이유: 홈 진입마다 만료된 종목 시세를 순차 갱신하고 시장 지수 API와 여러 DB 조회를 차례로 기다려 관심 종목·브리핑 본문까지 늦게 표시됐다.
+  - 수정: 관심 종목과 저장 시세를 한 번에 조회하고 독립된 DB 조회를 병렬 실행한다. 시장 지수는 별도 Suspense 영역으로 분리한다. 저장된 시세가 없는 종목도 표시하고 가격 기준 날짜·시각을 안내한다. 운영자 수동 갱신은 유지한다.
+  - 검증: 저장 시세 유지·미수집 종목 표시·본문 조회 병렬 실행·시장 지수 분리 회귀 검사를 통과했다. 운영 성능 수치는 배포 후 별도 측정한다.
+
 ### 2026-10-27
 
 - **Clarity 방문 분석 동의 안내 추가** — `src/components/clarity-analytics.tsx`, `src/lib/clarity.ts`, `src/app/layout.tsx`, `tests/clarity.test.mjs`, `README.md`

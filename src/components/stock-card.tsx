@@ -2,7 +2,7 @@ import Link from "next/link";
 import { removeStockAction } from "@/app/actions";
 import { Sparkline } from "@/components/sparkline";
 import { changeColorClass, formatChange, formatPrice } from "@/lib/format";
-import type { Quote } from "@/lib/providers/types";
+import type { Market, Quote } from "@/lib/providers/types";
 
 const VERDICT_COLOR: Record<string, string> = {
   매수검토: "text-[var(--up)] border-[rgba(240,68,82,0.4)]",
@@ -11,13 +11,15 @@ const VERDICT_COLOR: Record<string, string> = {
 };
 
 export function StockCard({
+  stock,
   quote,
   closes = [],
   passedRules = [],
   verdict,
   canManage = false,
 }: {
-  quote: Quote;
+  stock: { symbol: string; name: string; market: Market };
+  quote: Quote | null;
   closes?: number[];
   passedRules?: string[];
   verdict?: string;
@@ -26,22 +28,22 @@ export function StockCard({
   return (
     <div className="group relative rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 transition-colors hover:border-[var(--text-faint)]">
       <Link
-        href={`/stock/${encodeURIComponent(quote.symbol)}`}
-        aria-label={`${quote.name} 상세 보기`}
+        href={`/stock/${encodeURIComponent(stock.symbol)}`}
+        aria-label={`${stock.name} 상세 보기`}
         className="absolute inset-0 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
       />
       <div className="flex items-start justify-between">
         <div>
-          <div className="font-bold">{quote.name}</div>
+          <div className="font-bold">{stock.name}</div>
           <div className="text-xs text-[var(--text-faint)]">
-            {quote.symbol.replace(":", " · ")}
+            {stock.symbol.replace(":", " · ")}
           </div>
         </div>
         <div className="flex items-center gap-2">
           <span className="rounded bg-[var(--surface-2)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--text-dim)]">
-            {quote.market}
+            {stock.market}
           </span>
-          {canManage && <form action={removeStockAction.bind(null, quote.symbol)} className="relative z-10">
+          {canManage && <form action={removeStockAction.bind(null, stock.symbol)} className="relative z-10">
             <button
               title="관심 종목에서 제거"
               className="rounded px-1 text-[var(--text-faint)] opacity-0 transition-opacity hover:text-[var(--up)] group-hover:opacity-100"
@@ -51,14 +53,14 @@ export function StockCard({
           </form>}
         </div>
       </div>
-      <div className="num mt-3 flex items-baseline gap-2">
+      {quote ? <div className="num mt-3 flex items-baseline gap-2">
         <span className="text-xl font-extrabold tracking-tight">
           {formatPrice(quote.price, quote.market)}
         </span>
         <span className={`text-sm font-semibold ${changeColorClass(quote.changePct)}`}>
           {formatChange(quote.changePct)}
         </span>
-      </div>
+      </div> : <div className="mt-3 text-sm text-[var(--text-faint)]">시세 준비 중</div>}
 
       <Sparkline closes={closes} />
 
@@ -81,12 +83,14 @@ export function StockCard({
       )}
 
       <div className="mt-2 text-[11px] text-[var(--text-faint)]">
-        {quote.asOf.toLocaleTimeString("ko-KR", {
+        {quote ? <>{quote.asOf.toLocaleString("ko-KR", {
           timeZone: "Asia/Seoul",
+          month: "numeric",
+          day: "numeric",
           hour: "2-digit",
           minute: "2-digit",
         })} 기준
-        {quote.isMock && " · 모의 데이터"}
+        {quote.isMock && " · 모의 데이터"}</> : "저장된 시세가 없습니다"}
       </div>
     </div>
   );
