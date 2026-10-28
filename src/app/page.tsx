@@ -1,4 +1,4 @@
-import { pageMetadata } from "@/lib/seo";
+import { pageMetadata, siteUrl } from "@/lib/seo";
 import Link from "next/link";
 import { Suspense } from "react";
 import { DbSetupNotice } from "@/components/db-setup-notice";
@@ -29,9 +29,30 @@ export const metadata = {
 
 export default function Dashboard() {
   return (
-    <Suspense fallback={<PageLoading />}>
-      <DashboardContent />
-    </Suspense>
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        name: "주식갈피",
+        url: siteUrl().href,
+        inLanguage: "ko-KR",
+      }).replace(/</g, "\\u003c") }} />
+      <section aria-labelledby="home-title" className="mb-6">
+        <h1 id="home-title" className="text-2xl font-extrabold tracking-tight">주식갈피</h1>
+        <p className="mt-2 text-sm leading-relaxed text-[var(--text-dim)]">
+          한국·미국 주식 공부를 위한 기업 정보와 시장 브리핑을 모읍니다.
+          종목별 시세·재무 지표, AI 리서치와 투자 공부 노트에서 판단의 근거를 살펴보세요.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-4 text-sm text-[var(--accent)]">
+          <Link href="/stocks" className="underline underline-offset-4">전체 종목 살펴보기</Link>
+          <Link href="/briefing" className="underline underline-offset-4">시장 브리핑 읽기</Link>
+          <Link href="/notes" className="underline underline-offset-4">주식 공부 노트 읽기</Link>
+        </div>
+      </section>
+      <Suspense fallback={<PageLoading />}>
+        <DashboardContent />
+      </Suspense>
+    </>
   );
 }
 

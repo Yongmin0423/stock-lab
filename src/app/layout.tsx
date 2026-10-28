@@ -10,6 +10,7 @@ export const metadata: Metadata = {
   metadataBase: siteUrl(),
   title: { default: "주식갈피 | 주식 리서치와 시장 브리핑", template: "%s | 주식갈피" },
   description: "내 투자 공부가 AI의 판단 기준이 되는 개인 리서치 대시보드",
+  verification: { google: "XVXKmhbAmz9i2kIKN6Q6zP8jSRhHHzH5M-Ly8-wSDiU" },
   manifest: "/manifest.json",
   icons: {
     icon: "/icon-192.png",

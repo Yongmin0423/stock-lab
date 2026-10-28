@@ -30,6 +30,15 @@ try {
     const response = await request(path, true);
     assert.equal(response.status, 200, path);
     const html = await response.text();
+    if (path === "/") {
+      assert.match(html, /name="google-site-verification" content="[^"]+"/);
+      assert.match(html, /<h1[^>]*>주식갈피<\/h1>/);
+      assert.ok(html.includes("한국·미국 주식 공부를 위한"));
+      const website = JSON.parse(html.match(/<script type="application\/ld\+json">([^<]+)<\/script>/)[1]);
+      assert.equal(website["@type"], "WebSite");
+      assert.equal(website.name, "주식갈피");
+      assert.equal(website.url, `${canonicalOrigin}/`);
+    }
     const canonical = html.match(/rel="canonical" href="([^"]+)"/)?.[1];
     assert.ok(canonical, path);
     assert.equal(new URL(canonical).href, new URL(path, canonicalOrigin).href, path);
