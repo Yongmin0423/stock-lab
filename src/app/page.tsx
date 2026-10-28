@@ -14,10 +14,11 @@ import { latestBriefing } from "@/lib/db/queries/briefings";
 import { latestDiscovery } from "@/lib/db/queries/discoveries";
 import { listNotes } from "@/lib/db/queries/notes";
 import { listEnabledRules } from "@/lib/db/queries/rules";
-import { getDashboardExtras, getWatchlistWithSavedQuotes } from "@/lib/db/queries/stocks";
+import { getDashboardExtras, getWatchlistWithQuotes } from "@/lib/db/queries/stocks";
 import { changeColorClass, formatChange, timeAgo } from "@/lib/format";
 import { getMarketBar } from "@/lib/market-overview";
 import { isMarketOpen } from "@/lib/market-hours";
+import type { Quote } from "@/lib/providers/types";
 import { evaluateRules } from "@/lib/rules";
 import { isOperator } from "@/lib/operator";
 
@@ -38,32 +39,56 @@ async function DashboardContent() {
   const operator = await isOperator();
   if (!hasDb()) return <DbSetupNotice />;
 
-  let watchlist: Awaited<ReturnType<typeof getWatchlistWithSavedQuotes>>;
+  let quotes: Quote[];
+  const quoteFailures: Array<{ name: string; message: string; usingCache: boolean }> = [];
   try {
-    watchlist = await getWatchlistWithSavedQuotes();
+    quotes = await getWatchlistWithQuotes((failure) => quoteFailures.push(failure));
   } catch (e) {
     return <DbSetupNotice error={e instanceof Error ? e.message : "알 수 없는 오류"} />;
   }
 
-  const symbols = watchlist.map((stock) => stock.symbol);
-  // 운영 빌드에서 캐시 조회가 동시에 실행되면 응답이 끝나지 않아 순차 조회한다.
-  const brief = await latestBriefing();
-  const discovery = await latestDiscovery();
-  const [extras, verdicts, enabledRules, recentNotes] = await Promise.all([
-    getDashboardExtras(symbols),
-    latestVerdicts(),
-    listEnabledRules(),
-    operator ? listNotes().then((notes) => notes.slice(0, 3)) : [],
-  ]);
+  const symbols = quotes.map((q) => q.symbol);
+  const [bar, extras, verdicts, enabledRules, brief, recentNotes, discovery] = [
+    await getMarketBar(),
+    await getDashboardExtras(symbols),
+    await latestVerdicts(),
+    await listEnabledRules(),
+    await latestBriefing(),
+    operator ? (await listNotes()).slice(0, 3) : [],
+    await latestDiscovery(),
+  ];
 
   // 추천 리스트: 최근 발굴 결과 중 아직 watchlist에 없는 것만
   const recommendations = (discovery?.picks ?? []).filter((p) => !symbols.includes(p.symbol)).slice(0, 3);
 
+  const hasMock = quotes.some((q) => q.isMock);
+  const usOpen = isMarketOpen("US");
+  const krOpen = isMarketOpen("KR");
+
   return (
     <div>
-      <Suspense fallback={<div aria-label="시장 지수 불러오는 중" className="mb-4 h-11 animate-pulse rounded-xl bg-[var(--surface)] motion-reduce:animate-none" />}>
-        <MarketStatusBar />
-      </Suspense>
+      {/* 시장 상태 바 */}
+      {bar.length > 0 && (
+        <div className="num mb-4 flex gap-5 overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-[13px]">
+          <span className="flex items-center gap-1.5 whitespace-nowrap text-[var(--text-dim)]">
+            <span className={`inline-block h-1.5 w-1.5 rounded-full ${krOpen ? "bg-emerald-500" : "bg-[var(--text-faint)]"}`} />
+            한국 {krOpen ? "장중" : "마감"}
+          </span>
+          <span className="flex items-center gap-1.5 whitespace-nowrap text-[var(--text-dim)]">
+            <span className={`inline-block h-1.5 w-1.5 rounded-full ${usOpen ? "bg-emerald-500" : "bg-[var(--text-faint)]"}`} />
+            미국 {usOpen ? "장중" : "마감"}
+          </span>
+          {bar.map((b) => (
+            <span key={b.name} className="flex items-baseline gap-1.5 whitespace-nowrap">
+              <span className="text-[var(--text-dim)]">{b.name}</span>
+              <b>{b.value}</b>
+              {b.changePct != null && (
+                <span className={changeColorClass(b.changePct)}>{formatChange(b.changePct)}</span>
+              )}
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* 브리핑 스트립 (없으면 안내) */}
       {brief ? (
@@ -99,27 +124,34 @@ async function DashboardContent() {
         <RefreshQuotesButton />
       </div>}
 
-      {watchlist.length > 0 && (operator ? <MarketQuestion /> : (
+      {quotes.length > 0 && (operator ? <MarketQuestion /> : (
         <p className="mb-4 text-sm text-[var(--text-faint)]">
           저장된 브리핑·발굴 결과는 누구나 읽을 수 있습니다. AI 질문과 생성은 <Link href="/login" className="text-[var(--accent)] underline">운영자 로그인</Link> 후 이용할 수 있습니다.
         </p>
       ))}
 
-      {watchlist.length > 0 && <p className="mb-4 text-xs text-[var(--text-faint)]">
-        시세는 마지막 저장값입니다. 각 종목의 갱신 시각을 확인하세요.
-        {operator && " 최신 시세는 시세 새로고침으로 갱신할 수 있습니다."}
-      </p>}
+      {hasMock && (
+        <div className="mb-4 rounded-xl border border-[rgba(217,166,63,0.4)] bg-[rgba(217,166,63,0.08)] px-4 py-3 text-sm text-[var(--gold)]">
+          일부 시세가 모의 데이터입니다 — <code className="font-mono">.env.local</code>의 키 설정을 확인하세요.
+        </div>
+      )}
+
+      {quoteFailures.length > 0 && (
+        <div className="mb-4 rounded-xl border border-[rgba(240,68,82,0.4)] bg-[rgba(240,68,82,0.08)] px-4 py-3 text-sm text-[var(--up)]">
+          시세 조회 실패 — {quoteFailures.map((f) => `${f.name}: ${f.message}${f.usingCache ? " (저장값 표시 중)" : ""}`).join(" · ")}
+        </div>
+      )}
 
       <h2 className="mb-3 text-[13px] font-bold uppercase tracking-wider text-[var(--text-dim)]">
-        Watchlist {watchlist.length > 0 && <span className="text-[var(--text-faint)]">({watchlist.length})</span>}
+        Watchlist {quotes.length > 0 && <span className="text-[var(--text-faint)]">({quotes.length})</span>}
       </h2>
 
-      {watchlist.length === 0 ? (
+      {quotes.length === 0 ? (
         operator ? <EmptyState /> : <p className="text-sm text-[var(--text-faint)]">등록된 관심 종목이 없습니다.</p>
       ) : (
         <div className="grid gap-3 md:grid-cols-3">
-          {watchlist.map((stock) => {
-            const fund = extras.funds[stock.symbol];
+          {quotes.map((q) => {
+            const fund = extras.funds[q.symbol];
             const passed = fund
               ? evaluateRules(
                   {
@@ -137,12 +169,11 @@ async function DashboardContent() {
               : [];
             return (
               <StockCard
-                key={stock.symbol}
-                stock={stock}
-                quote={stock.quote}
-                closes={extras.closes[stock.symbol] ?? []}
+                key={q.symbol}
+                quote={q}
+                closes={extras.closes[q.symbol] ?? []}
                 passedRules={passed}
-                verdict={verdicts[stock.symbol]}
+                verdict={verdicts[q.symbol]}
                 canManage={operator}
               />
             );
@@ -255,35 +286,6 @@ async function DashboardContent() {
           )}
         </div>}
       </div>
-    </div>
-  );
-}
-
-// 외부 지수 API가 느려도 관심 종목과 브리핑은 먼저 표시한다.
-async function MarketStatusBar() {
-  const bar = await getMarketBar();
-  const usOpen = isMarketOpen("US");
-  const krOpen = isMarketOpen("KR");
-  if (bar.length === 0) return null;
-  return (
-    <div className="num mb-4 flex gap-5 overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-[13px]">
-      <span className="flex items-center gap-1.5 whitespace-nowrap text-[var(--text-dim)]">
-        <span className={`inline-block h-1.5 w-1.5 rounded-full ${krOpen ? "bg-emerald-500" : "bg-[var(--text-faint)]"}`} />
-        한국 {krOpen ? "장중" : "마감"}
-      </span>
-      <span className="flex items-center gap-1.5 whitespace-nowrap text-[var(--text-dim)]">
-        <span className={`inline-block h-1.5 w-1.5 rounded-full ${usOpen ? "bg-emerald-500" : "bg-[var(--text-faint)]"}`} />
-        미국 {usOpen ? "장중" : "마감"}
-      </span>
-      {bar.map((b) => (
-        <span key={b.name} className="flex items-baseline gap-1.5 whitespace-nowrap">
-          <span className="text-[var(--text-dim)]">{b.name}</span>
-          <b>{b.value}</b>
-          {b.changePct != null && (
-            <span className={changeColorClass(b.changePct)}>{formatChange(b.changePct)}</span>
-          )}
-        </span>
-      ))}
     </div>
   );
 }
