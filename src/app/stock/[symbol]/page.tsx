@@ -12,7 +12,7 @@ import { findRelevantNotes } from "@/lib/db/queries/notes";
 import { listEnabledRules } from "@/lib/db/queries/rules";
 import { getStock } from "@/lib/db/queries/stocks";
 import { pageMetadata } from "@/lib/seo";
-import { evaluateRules } from "@/lib/rules";
+import { evaluateRules, ruleMetrics } from "@/lib/rules";
 import { changeColorClass, formatChange, formatMarketCap, formatMetric, formatPrice } from "@/lib/format";
 import { isMarketOpen } from "@/lib/market-hours";
 import { isOperator } from "@/lib/operator";
@@ -163,17 +163,7 @@ async function StockContent({ params }: { params: Promise<{ symbol: string }> })
 
 async function StockFundamentals({ symbol, market }: { symbol: string; market: "US" | "KR" }) {
   const [fund, enabledRules] = await Promise.all([getFundamentalsCached(symbol), listEnabledRules()]);
-  const ruleResults = evaluateRules(
-    {
-      per: fund?.per ?? null,
-      pbr: fund?.pbr ?? null,
-      eps: fund?.eps ?? null,
-      roe: fund?.roe ?? null,
-      debtToEquity: fund?.debtToEquity ?? null,
-      dividendYield: fund?.dividendYield ?? null,
-    },
-    enabledRules,
-  );
+  const ruleResults = evaluateRules(ruleMetrics(fund), enabledRules);
   const metrics = [
     { k: "PER", v: formatMetric(fund?.per) },
     { k: "PBR", v: formatMetric(fund?.pbr) },

@@ -4,7 +4,7 @@ import { listNotes } from "@/lib/db/queries/notes";
 import { listEnabledRules } from "@/lib/db/queries/rules";
 import { listScreeningFundamentals } from "@/lib/db/queries/screening";
 import { getWatchlist } from "@/lib/db/queries/stocks";
-import { evaluateRules } from "@/lib/rules";
+import { evaluateRules, ruleMetrics } from "@/lib/rules";
 
 export interface DiscoveryOutput {
   picks: Array<{ symbol: string; name: string; fit_score: number; reason: string; cited: string; caution: string }>;
@@ -45,17 +45,7 @@ export async function generateDiscovery(): Promise<DiscoveryOutput> {
 
   const candidates: DiscoverCandidate[] = [];
   for (const u of universe) {
-    const ruleResults = evaluateRules(
-      {
-        per: u.per,
-        pbr: u.pbr,
-        eps: u.eps,
-        roe: u.roe,
-        debtToEquity: u.debtToEquity,
-        dividendYield: u.dividendYield,
-      },
-      enabledRules,
-    );
+    const ruleResults = evaluateRules(ruleMetrics(u), enabledRules);
     const passedCount = ruleResults.filter((r) => r.passed).length;
     if (passedCount > 0) {
       candidates.push({

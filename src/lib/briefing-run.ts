@@ -7,7 +7,7 @@ import { listNotes } from "@/lib/db/queries/notes";
 import { listEnabledRules } from "@/lib/db/queries/rules";
 import { getWatchlist } from "@/lib/db/queries/stocks";
 import { getMarketBar } from "@/lib/market-overview";
-import { evaluateRules } from "@/lib/rules";
+import { evaluateRules, ruleMetrics } from "@/lib/rules";
 
 /** 브리핑 생성 전체 파이프라인 — 수동 버튼(/api/briefing)과 cron(/api/cron/briefing)이 공용 */
 export async function generateBriefing(slot: "morning" | "evening"): Promise<{ row: BriefingRow; isMock: boolean }> {
@@ -46,17 +46,7 @@ export async function generateBriefing(slot: "morning" | "evening"): Promise<{ r
             fetchedAt: fund.fetchedAt,
           }
         : null,
-      ruleResults: evaluateRules(
-        {
-          per: fund?.per ?? null,
-          pbr: fund?.pbr ?? null,
-          eps: fund?.eps ?? null,
-          roe: fund?.roe ?? null,
-          debtToEquity: fund?.debtToEquity ?? null,
-          dividendYield: fund?.dividendYield ?? null,
-        },
-        enabledRules,
-      ),
+      ruleResults: evaluateRules(ruleMetrics(fund), enabledRules),
       latestAnalysis: latest
         ? {
             verdict: latest.verdict,

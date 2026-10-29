@@ -8,7 +8,7 @@ import { findRelevantNotes } from "@/lib/db/queries/notes";
 import { listEnabledRules } from "@/lib/db/queries/rules";
 import { insertAnalysis } from "@/lib/db/queries/analyses";
 import { stocks } from "@/lib/db/schema";
-import { evaluateRules } from "@/lib/rules";
+import { evaluateRules, ruleMetrics } from "@/lib/rules";
 
 export const maxDuration = 60; // Vercel 배포 시 AI 응답 대기 여유
 
@@ -30,17 +30,7 @@ export async function POST(req: Request) {
     const notes = await findRelevantNotes(symbol, 5);
 
     const enabledRules = await listEnabledRules();
-    const ruleResults = evaluateRules(
-      {
-        per: fund?.per ?? null,
-        pbr: fund?.pbr ?? null,
-        eps: fund?.eps ?? null,
-        roe: fund?.roe ?? null,
-        debtToEquity: fund?.debtToEquity ?? null,
-        dividendYield: fund?.dividendYield ?? null,
-      },
-      enabledRules,
-    );
+    const ruleResults = evaluateRules(ruleMetrics(fund), enabledRules);
 
     const ctx: AnalysisContext = {
       stock: { symbol, name: stock.name },

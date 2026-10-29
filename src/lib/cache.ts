@@ -1,10 +1,28 @@
-import { eq } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNull } from "drizzle-orm";
 import { getDb } from "./db";
-import { quotes, stocks } from "./db/schema";
+import { candles, financials, news, quotes } from "./db/schema";
 import { providerFor } from "./providers/factory";
 import { parseSymbol, type Quote } from "./providers/types";
 
 const QUOTE_TTL_MS = 2 * 60 * 1000;
+
+function cachedQuote(
+  symbol: string,
+  name: string,
+  cached: { price: number; changePct: number; fetchedAt: Date },
+): Quote {
+  const { market } = parseSymbol(symbol);
+  return {
+    symbol,
+    name,
+    market,
+    price: cached.price,
+    changePct: cached.changePct,
+    currency: market === "KR" ? "KRW" : "USD",
+    asOf: cached.fetchedAt,
+    isMock: false,
+  };
+}
 
 /**
  * 시세 조회의 유일한 관문 (TTL 캐시).
@@ -20,23 +38,14 @@ export async function getQuoteCached(
   onFailure?: (message: string, usingCache: boolean) => void,
 ): Promise<Quote | null> {
   const db = getDb();
-  const { market, code } = parseSymbol(symbol);
+  const { code } = parseSymbol(symbol);
 
   const cached = await db.query.quotes.findFirst({
     where: eq(quotes.stockSymbol, symbol),
   });
 
   if (!force && cached && Date.now() - cached.fetchedAt.getTime() < QUOTE_TTL_MS) {
-    return {
-      symbol,
-      name,
-      market,
-      price: cached.price,
-      changePct: cached.changePct,
-      currency: market === "KR" ? "KRW" : "USD",
-      asOf: cached.fetchedAt,
-      isMock: false,
-    };
+    return cachedQuote(symbol, name, cached);
   }
 
   try {
@@ -53,18 +62,7 @@ export async function getQuoteCached(
     return { ...fresh, symbol, name };
   } catch (e) {
     onFailure?.(e instanceof Error ? e.message : "시세 조회 실패", Boolean(cached));
-    if (cached) {
-      return {
-        symbol,
-        name,
-        market,
-        price: cached.price,
-        changePct: cached.changePct,
-        currency: market === "KR" ? "KRW" : "USD",
-        asOf: cached.fetchedAt,
-        isMock: false,
-      };
-    }
+    if (cached) return cachedQuote(symbol, name, cached);
     return null; // 한 종목 실패가 전체를 막지 않도록
   }
 }
@@ -75,7 +73,6 @@ const FUND_TTL_MS = 24 * 60 * 60 * 1000;
 export async function getFundamentalsCached(symbol: string) {
   const db = getDb();
   const { code, market } = parseSymbol(symbol);
-  const { financials } = await import("./db/schema");
 
   const cached = await db.query.financials.findFirst({
     where: eq(financials.stockSymbol, symbol),
@@ -122,8 +119,6 @@ export async function getFundamentalsCached(symbol: string) {
 export async function getCandlesCached(symbol: string, days: number) {
   const db = getDb();
   const { code } = parseSymbol(symbol);
-  const { candles } = await import("./db/schema");
-  const { asc, gte, and } = await import("drizzle-orm");
 
   const cutoff = new Date(Date.now() - days * 86400e3).toISOString().slice(0, 10);
   const existing = await db
@@ -155,19 +150,16 @@ const NEWS_TTL_MS = 60 * 60 * 1000;
 export async function getNewsCached(symbol: string, name: string, evaluate = false) {
   const db = getDb();
   const { market, code } = parseSymbol(symbol);
-  const { news } = await import("./db/schema");
-  const { desc } = await import("drizzle-orm");
 
   async function evaluateStoredNews() {
     try {
       const { hasAiKey } = await import("./ai/analyze");
       if (!hasAiKey()) return;
 
-      const { isNull, and: andOp } = await import("drizzle-orm");
       const unevaluated = await db
         .select({ id: news.id, headline: news.headline })
         .from(news)
-        .where(andOp(eq(news.stockSymbol, symbol), isNull(news.sentiment)))
+        .where(and(eq(news.stockSymbol, symbol), isNull(news.sentiment)))
         .orderBy(desc(news.publishedAt))
         .limit(20);
       if (unevaluated.length === 0) return;
@@ -209,17 +201,17 @@ export async function getNewsCached(symbol: string, name: string, evaluate = fal
         ? await (await import("./providers/naver-news")).naverNews(name)
         : await providerFor(symbol).getNews(code, name);
 
-    for (const n of items) {
+    // 한 INSERT 안에 같은 url이 두 번 있으면 ON CONFLICT DO UPDATE가 실패하므로 url 기준으로 중복 제거
+    const rowsByUrl = new Map(
+      items.map((n) => [
+        n.url,
+        { stockSymbol: symbol, headline: n.headline, source: n.source, url: n.url, publishedAt: n.publishedAt, fetchedAt: new Date() },
+      ]),
+    );
+    if (rowsByUrl.size > 0) {
       await db
         .insert(news)
-        .values({
-          stockSymbol: symbol,
-          headline: n.headline,
-          source: n.source,
-          url: n.url,
-          publishedAt: n.publishedAt,
-          fetchedAt: new Date(),
-        })
+        .values([...rowsByUrl.values()])
         .onConflictDoUpdate({ target: news.url, set: { fetchedAt: new Date() } });
     }
 
@@ -230,5 +222,3 @@ export async function getNewsCached(symbol: string, name: string, evaluate = fal
     return rows; // 실패 시 기존 캐시
   }
 }
-
-export { stocks };

@@ -41,6 +41,19 @@ export interface RuleResult {
 }
 
 type MetricSource = Partial<Record<string, number | null>>;
+type RuleMetricKey = "per" | "pbr" | "eps" | "roe" | "debtToEquity" | "dividendYield";
+
+/** 재무 행에서 룰 평가에 쓰는 지표만 추린다 (행이 없으면 전부 null) */
+export function ruleMetrics(f: Partial<Record<RuleMetricKey, number | null>> | null | undefined): MetricSource {
+  return {
+    per: f?.per ?? null,
+    pbr: f?.pbr ?? null,
+    eps: f?.eps ?? null,
+    roe: f?.roe ?? null,
+    debtToEquity: f?.debtToEquity ?? null,
+    dividendYield: f?.dividendYield ?? null,
+  };
+}
 
 export function evaluateRules(
   f: MetricSource,
