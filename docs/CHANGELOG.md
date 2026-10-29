@@ -1,3 +1,9 @@
+### 2026-10-29
+
+- **시세·재무·뉴스 캐시 코드 정리와 룰 평가 입력 중복 제거** — `src/lib/cache.ts`, `src/lib/rules.ts`, `src/app/page.tsx`, `src/app/stock/[symbol]/page.tsx`, `src/app/api/analyze/route.ts`, `src/app/api/ask-market/route.ts`, `src/lib/briefing-run.ts`, `src/lib/discover-run.ts`
+  - 원인/이유: `cache.ts`가 이미 정적으로 불러온 `drizzle-orm`·DB 스키마를 함수마다 다시 `await import`했고, 저장 시세를 `Quote`로 바꾸는 코드가 두 번 반복됐으며, 쓰이지 않는 `stocks` 재수출이 남아 있었다. 뉴스는 기사마다 INSERT를 따로 실행해 최대 20회 DB를 왕복했다. 룰 평가 입력(PER·PBR·EPS·ROE·부채비율·배당수익률)도 6곳에서 손으로 같은 객체를 만들어, 지표를 추가할 때 한 곳을 빠뜨릴 위험이 있었다.
+  - 수정: 스키마·`drizzle-orm`을 파일 상단 import로 옮기고, 저장 시세 변환은 `cachedQuote`로 합쳤으며, 미사용 재수출을 제거했다. 뉴스는 url 기준으로 중복을 제거한 뒤 한 번의 INSERT로 저장한다(같은 INSERT 안에서 url이 겹치면 ON CONFLICT DO UPDATE가 실패하기 때문). `rules.ts`에 `ruleMetrics`를 추가해 6곳이 같이 사용한다. AI·DART·네이버 뉴스 모듈의 지연 로딩과 홈의 순차 조회 순서는 그대로 유지한다.
+
 ### 2026-10-28
 
 - **검색용 홈 소개와 사이트 이름 정보 추가** — `src/app/page.tsx`, `src/app/layout.tsx`, `tests/seo-routes.test.mjs`

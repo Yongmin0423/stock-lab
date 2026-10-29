@@ -8,7 +8,7 @@ import { listNotes } from "@/lib/db/queries/notes";
 import { listEnabledRules } from "@/lib/db/queries/rules";
 import { getDashboardExtras, getWatchlistWithQuotes } from "@/lib/db/queries/stocks";
 import { answerSimpleMarketQuestion, marketQuestionContext } from "@/lib/market-question";
-import { evaluateRules } from "@/lib/rules";
+import { evaluateRules, ruleMetrics } from "@/lib/rules";
 import { explainVerdictQuestion } from "@/lib/verdict-explanation";
 
 export const maxDuration = 110;
@@ -102,17 +102,7 @@ export async function POST(req: Request) {
             : null
           : undefined,
         rules: context.rules
-          ? evaluateRules(
-              {
-                per: fund?.per ?? null,
-                pbr: fund?.pbr ?? null,
-                eps: fund?.eps ?? null,
-                roe: fund?.roe ?? null,
-                debtToEquity: fund?.debtToEquity ?? null,
-                dividendYield: fund?.dividendYield ?? null,
-              },
-              enabledRules,
-            )
+          ? evaluateRules(ruleMetrics(fund), enabledRules)
           : undefined,
         news: context.news
           ? newsRows

@@ -19,7 +19,7 @@ import { changeColorClass, formatChange, timeAgo } from "@/lib/format";
 import { getMarketBar } from "@/lib/market-overview";
 import { isMarketOpen } from "@/lib/market-hours";
 import type { Quote } from "@/lib/providers/types";
-import { evaluateRules } from "@/lib/rules";
+import { evaluateRules, ruleMetrics } from "@/lib/rules";
 import { isOperator } from "@/lib/operator";
 
 export const metadata = {
@@ -174,17 +174,7 @@ async function DashboardContent() {
           {quotes.map((q) => {
             const fund = extras.funds[q.symbol];
             const passed = fund
-              ? evaluateRules(
-                  {
-                    per: fund.per,
-                    pbr: fund.pbr,
-                    eps: fund.eps,
-                    roe: fund.roe,
-                    debtToEquity: fund.debtToEquity,
-                    dividendYield: fund.dividendYield,
-                  },
-                  enabledRules,
-                )
+              ? evaluateRules(ruleMetrics(fund), enabledRules)
                   .filter((r) => r.passed)
                   .map((r) => r.name)
               : [];
