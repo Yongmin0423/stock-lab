@@ -6,6 +6,8 @@ import { NewRuleButton, RuleEditor } from "@/components/rule-editor";
 import { hasDb } from "@/lib/db";
 import { listRules } from "@/lib/db/queries/rules";
 import { requireOperator } from "@/lib/operator";
+import { ResearchWorkerConnection } from "@/components/research-worker-connection";
+import { researchWorkerConfigured } from "@/lib/research/client";
 
 export const metadata: Metadata = { title: "설정", robots: { index: false, follow: false } };
 
@@ -19,7 +21,7 @@ export default function SettingsPage() {
 
 async function SettingsContent() {
   await requireOperator();
-  if (!hasDb()) return <DbSetupNotice />;
+  if (!hasDb()) return <><DbSetupNotice /><ResearchWorkerConnection configured={researchWorkerConfigured()} /></>;
   const rules = await listRules();
 
   const { aiProvider } = await import("@/lib/ai/llm");
@@ -36,6 +38,7 @@ async function SettingsContent() {
   return (
     <div>
       <h1 className="mb-1 text-xl font-extrabold tracking-tight">설정</h1>
+      <ResearchWorkerConnection configured={researchWorkerConfigured()} />
 
       <h2 className="mb-3 mt-6 text-[13px] font-bold uppercase tracking-wider text-[var(--text-dim)]">
         스크리닝 룰

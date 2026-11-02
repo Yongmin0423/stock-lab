@@ -1,0 +1,12 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "stock-lab-research",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-30",
+  "compatibility_flags": ["nodejs_compat"],
+  "secrets": { "required": ["RESEARCH_WORKER_SECRET"] },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  }
+}

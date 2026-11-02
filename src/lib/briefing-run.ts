@@ -8,6 +8,9 @@ import { listEnabledRules } from "@/lib/db/queries/rules";
 import { getWatchlist } from "@/lib/db/queries/stocks";
 import { getMarketBar } from "@/lib/market-overview";
 import { evaluateRules, ruleMetrics } from "@/lib/rules";
+import { createBriefingSnapshot, readBriefingSnapshots } from "@/lib/briefing-snapshot";
+import { compareBriefingSnapshots } from "@/lib/research/briefing-comparison";
+import { compareBriefingOnWorker } from "@/lib/research/client";
 
 /** 브리핑 생성 전체 파이프라인 — 수동 버튼(/api/briefing)과 cron(/api/cron/briefing)이 공용 */
 export async function generateBriefing(slot: "morning" | "evening"): Promise<{ row: BriefingRow; isMock: boolean }> {
@@ -32,6 +35,8 @@ export async function generateBriefing(slot: "morning" | "evening"): Promise<{ r
       name: s.name,
       price: quote?.price ?? null,
       changePct: quote?.changePct ?? null,
+      quoteAt: quote?.asOf ?? null,
+      isMock: quote?.isMock ?? false,
       fundamentals: fund
         ? {
             per: fund.per,
@@ -61,6 +66,7 @@ export async function generateBriefing(slot: "morning" | "evening"): Promise<{ r
       news: newsRows.slice(0, 8).map((n) => ({
         headline: n.headline,
         source: n.source,
+        url: n.url,
         publishedAt: n.publishedAt,
         isNew: n.publishedAt != null && (!prev || n.publishedAt > prev.createdAt),
       })),
@@ -76,7 +82,22 @@ export async function generateBriefing(slot: "morning" | "evening"): Promise<{ r
     .map((n) => `- [note-${n.id}] [${n.tags.join(",")}] ${n.title}: ${n.content.slice(0, 250)}`)
     .join("\n");
 
-  const ctx: BriefingContext = { slot, market, stocks, noteDigest, prevBriefingAt: prev?.createdAt ?? null };
+  const capturedAt = new Date().toISOString();
+  const snapshots = stocks.map((stock) => createBriefingSnapshot(stock, capturedAt));
+  const comparisonInput = { current: snapshots, previous: readBriefingSnapshots(prev?.stockSections) };
+  const mode = process.env.RESEARCH_BRIEFING_COMPARE_MODE ?? "local";
+  if (mode !== "local" && mode !== "worker") throw new Error("RESEARCH_BRIEFING_COMPARE_MODE는 local 또는 worker여야 합니다.");
+  const comparisons = mode === "worker" ? await compareBriefingOnWorker(comparisonInput) : compareBriefingSnapshots(comparisonInput);
+  const ctx: BriefingContext = {
+    slot, market, stocks, noteDigest, prevBriefingAt: prev?.createdAt ?? null, capturedAt, comparisons,
+    previousBriefing: prev ? {
+      id: prev.id, createdAt: prev.createdAt.toISOString(), marketSummary: prev.marketSummary?.slice(0, 2_000) ?? "",
+      stockSections: (prev.stockSections ?? []).filter((section) => list.some((stock) => stock.symbol === section.symbol))
+        .map((section) => ({ symbol: section.symbol, summary: section.summary.slice(0, 2_000) })),
+      watchItems: (prev.watchItems ?? []).filter((item) => list.some((stock) => stock.symbol === item.symbol)).slice(0, 10)
+        .map((item) => ({ symbol: item.symbol, reason: item.reason.slice(0, 1_000), basis: item.basis.slice(0, 1_000) })),
+    } : null,
+  };
   const result = hasAiKey() ? await runBriefing(ctx) : mockBriefing(ctx);
   const nameOf = (sym: string) => list.find((s) => s.symbol === sym)?.name ?? sym;
 
@@ -88,6 +109,8 @@ export async function generateBriefing(slot: "morning" | "evening"): Promise<{ r
       name: nameOf(sec.symbol),
       changePct: stocks.find((s) => s.symbol === sec.symbol)?.changePct ?? null,
       summary: sec.summary,
+      snapshot: snapshots.find((snapshot) => snapshot.symbol === sec.symbol),
+      comparison: comparisons.find((comparison) => comparison.symbol === sec.symbol),
     })),
     watchItems: result.watch_items.map((w) => ({ ...w, name: nameOf(w.symbol) })),
   });

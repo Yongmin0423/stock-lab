@@ -9,6 +9,7 @@ import { hasDb } from "@/lib/db";
 import { getBriefing, listBriefings } from "@/lib/db/queries/briefings";
 import { changeColorClass, formatChange } from "@/lib/format";
 import { isOperator } from "@/lib/operator";
+import { BriefingComparison } from "@/components/briefing-comparison";
 
 const SLOT_LABEL = { morning: "🌅 아침", evening: "🌆 저녁" } as const;
 
@@ -112,9 +113,10 @@ async function BriefingContent({ searchParams }: { searchParams: Promise<{ id?: 
                       </span>
                     )}
                   </Link>
-                  <p className={`whitespace-pre-line text-sm leading-relaxed ${quiet ? "text-[var(--text-faint)]" : "text-[var(--text-dim)]"}`}>
-                    {s.summary}
-                  </p>
+                  <div className="min-w-0">
+                    <p className={`whitespace-pre-line text-sm leading-relaxed ${quiet ? "text-[var(--text-faint)]" : "text-[var(--text-dim)]"}`}>{s.summary}</p>
+                    <BriefingComparison value={s.comparison} />
+                  </div>
                 </div>
               );
             })}

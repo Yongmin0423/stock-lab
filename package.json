@@ -8,7 +8,16 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "worker:dev": "wrangler dev --config workers/research/wrangler.jsonc --ip 127.0.0.1 --port 8787",
+    "worker:types": "wrangler types workers/research/worker-configuration.d.ts --config workers/research/wrangler.jsonc --env-interface ResearchWorkerEnv",
+    "worker:typecheck": "pnpm worker:types && tsc --project workers/research/tsconfig.json",
+    "worker:dry-run": "wrangler deploy --config workers/research/wrangler.jsonc --dry-run",
+    "worker:deploy": "wrangler deploy --config workers/research/wrangler.jsonc",
+    "test:research": "node tests/research-worker.test.mjs",
+    "test:research:runtime": "node tests/research-worker-runtime.test.mjs",
+    "test:research:routes": "node tests/research-worker-route.test.mjs",
+    "test:briefing": "node tests/briefing-comparison.test.mjs && node tests/briefing-prompt.test.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.57.0",
@@ -32,6 +41,7 @@
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.3.1",
     "tailwindcss": "^4.1.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "wrangler": "^4.156.0"
   }
 }

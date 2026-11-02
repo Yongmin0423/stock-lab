@@ -47,6 +47,8 @@ API 키 없이도 **모의 데이터 모드**로 바로 실행됩니다.
 
 ## 구조
 
+Cloudflare 리서치 Worker의 로컬 실행·환경 변수·배포·검증은 [Worker 연결 가이드](docs/Cloudflare_Worker_연결.md)를 참고하세요. 운영자 설정 화면에서 연결을 확인할 수 있습니다.
+
 ```
 src/
   app/            # 페이지 (Server Component가 기본)
