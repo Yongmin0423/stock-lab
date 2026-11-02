@@ -38,7 +38,7 @@ try {
     assert.equal(response.status, 401, path);
     assert.match((await response.json()).error, /로그인/);
   }
-  for (const path of ["/api/export-notes", "/api/search", "/api/cron/briefing", "/api/cron/refresh-screening"]) {
+  for (const path of ["/api/export-notes", "/api/search", "/api/research/health", "/api/cron/briefing", "/api/cron/refresh-screening"]) {
     assert.equal((await request(path)).status, 401, path);
   }
   for (const path of ["/settings", "/notes/new"]) {

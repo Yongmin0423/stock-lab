@@ -1,3 +1,13 @@
+### 2026-11-02
+
+- **Cloudflare 리서치 Worker 연결 기반** — `workers/research`, `src/lib/research`, `/api/research/health`, 설정 화면
+  - 운영자 인증 후 Worker의 `/health`에 시각·요청 ID를 포함한 HMAC 서명 요청을 보내고, 응답 계약과 연결 제한 시간을 검사한다.
+  - 설정 화면에 연결 등록 여부와 수동 연결 확인을 추가한다. DB가 없어도 연결 확인은 가능하다.
+  - Wrangler 실행·타입 생성·배포 전 검증 스크립트, 인증 계약/실제 로컬 런타임 테스트, 환경 변수 예제와 연결 가이드를 추가한다.
+  - 검증: 앱 빌드·앱/Worker 타입 검사·변경 코드 린트·인증 계약 테스트·실제 workerd HTTP 테스트·빌드된 앱 인증/설정 화면 HTTP 테스트 통과. 전체 린트는 기존 `scripts/check-setup.mjs` 경고 7개가 남아 있다.
+  - 배포: `stock-lab-research.yym21345.workers.dev`에 Worker와 시크릿 배포 완료. 실제 주소에서 비인증 401·서명 인증 정상 응답을 확인했다. 로컬 연결 설정은 반영했으며 Vercel 환경 설정과 앱 배포는 별도다.
+  - 기존 질문·브리핑 경로는 유지한다. DO 대화 저장과 서브 에이전트는 후속 단계다.
+
 ### 2026-10-29
 
 - **시세·재무·뉴스 캐시 코드 정리와 룰 평가 입력 중복 제거** — `src/lib/cache.ts`, `src/lib/rules.ts`, `src/app/page.tsx`, `src/app/stock/[symbol]/page.tsx`, `src/app/api/analyze/route.ts`, `src/app/api/ask-market/route.ts`, `src/lib/briefing-run.ts`, `src/lib/discover-run.ts`

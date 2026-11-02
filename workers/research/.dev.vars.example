@@ -1,0 +1,2 @@
+# Next.js의 RESEARCH_WORKER_SECRET과 같은 값을 설정한다 (32자 이상).
+RESEARCH_WORKER_SECRET=
