@@ -4,7 +4,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { setTimeout } from "node:timers/promises";
-import { checkResearchWorker } from "../src/lib/research/client.ts";
+import { checkResearchWorker, compareBriefingOnWorker } from "../src/lib/research/client.ts";
 import { createHealthHeaders } from "../src/lib/research/protocol.ts";
 
 // 외부 서비스와 운영 시크릿 없이 실제 workerd와 HTTP로 연결한다.
@@ -40,6 +40,13 @@ try {
   process.env.RESEARCH_WORKER_URL = origin;
   process.env.RESEARCH_WORKER_SECRET = secret;
   assert.equal((await checkResearchWorker()).status, "ok", "실제 Worker와 인증된 왕복 요청");
+  const snapshot = {
+    version: 1, symbol: "US:TEST", capturedAt: new Date().toISOString(), price: 100,
+    quoteAt: new Date().toISOString(), isMock: false, fundamentalsAt: null,
+    metrics: { per: null, pbr: null, eps: null, roe: null, debtToEquity: null, dividendYield: null }, rules: [],
+  };
+  const compared = await compareBriefingOnWorker({ current: [snapshot], previous: [] });
+  assert.equal(compared[0].baseline, "missing", "실제 Worker에서 본문 서명·스냅샷 검증·비교 실행");
   const expired = await createHealthHeaders(secret, crypto.randomUUID(), Date.now() - 120_000);
   assert.equal((await fetch(`${origin}/health`, { headers: expired })).status, 401);
   const wrong = await createHealthHeaders("incorrect-service-secret", crypto.randomUUID());

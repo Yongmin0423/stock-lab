@@ -1,4 +1,6 @@
-import { createHealthHeaders, isResearchHealth, type ResearchHealth } from "./protocol.ts";
+import { createHealthHeaders, createComparisonHeaders, isResearchHealth, type ResearchHealth } from "./protocol.ts";
+import { ComparisonInputSchema, ComparisonResultSchema, type ComparisonInput, type StockComparison } from "./briefing-comparison.ts";
+import { readLimitedBody } from "./body.ts";
 
 export class ResearchWorkerError extends Error {
   status: number;
@@ -13,15 +15,41 @@ export function researchWorkerConfigured(): boolean {
   return Boolean(process.env.RESEARCH_WORKER_URL && process.env.RESEARCH_WORKER_SECRET);
 }
 
-function healthUrl(): URL {
+function healthUrl(path = "/health"): URL {
   try {
     const url = new URL(process.env.RESEARCH_WORKER_URL ?? "");
     const local = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
     if (url.username || url.password || url.search || url.hash || url.pathname !== "/"
       || (url.protocol !== "https:" && !(url.protocol === "http:" && local && process.env.NODE_ENV !== "production"))) throw new Error();
-    return new URL("/health", url);
+    return new URL(path, url);
   } catch {
     throw new ResearchWorkerError("리서치 서버 주소를 확인해주세요. 운영 환경은 HTTPS 주소가 필요합니다.", 503);
+  }
+}
+
+export async function compareBriefingOnWorker(input: ComparisonInput): Promise<StockComparison[]> {
+  const secret = process.env.RESEARCH_WORKER_SECRET;
+  if (!secret || secret.length < 32) throw new ResearchWorkerError("리서치 서버 연결 시크릿을 설정해주세요.", 503);
+  const url = healthUrl("/briefing/compare");
+  const body = JSON.stringify(ComparisonInputSchema.parse(input));
+  if (new TextEncoder().encode(body).byteLength > 512_000) throw new ResearchWorkerError("브리핑 비교 자료가 너무 큽니다.", 413);
+  const requestId = crypto.randomUUID();
+  const signed = await createComparisonHeaders(secret, requestId, body);
+  const signal = AbortSignal.timeout(10_000);
+  try {
+    const response = await fetch(url, { method: "POST", headers: signed, body, cache: "no-store", redirect: "error", signal });
+    if (!response.ok) {
+      await response.body?.cancel();
+      throw new ResearchWorkerError("Worker 브리핑 비교에 실패했습니다. 연결 설정과 Worker 배포 상태를 확인해주세요.", 502);
+    }
+    const result = JSON.parse(await readLimitedBody(response.body, 256_000));
+    const comparisons = ComparisonResultSchema.parse(result.comparisons);
+    if (result.requestId !== requestId || comparisons.length !== input.current.length
+      || comparisons.some((row, index) => row.symbol !== input.current[index].symbol)) throw new Error("Invalid comparison response");
+    return comparisons;
+  } catch (error) {
+    if (error instanceof ResearchWorkerError) throw error;
+    throw new ResearchWorkerError(signal.aborted ? "Worker 브리핑 비교 시간이 초과되었습니다." : "Worker 브리핑 비교 응답을 확인할 수 없습니다.", signal.aborted ? 504 : 502);
   }
 }
 

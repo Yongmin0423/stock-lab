@@ -16,7 +16,8 @@
     "worker:deploy": "wrangler deploy --config workers/research/wrangler.jsonc",
     "test:research": "node tests/research-worker.test.mjs",
     "test:research:runtime": "node tests/research-worker-runtime.test.mjs",
-    "test:research:routes": "node tests/research-worker-route.test.mjs"
+    "test:research:routes": "node tests/research-worker-route.test.mjs",
+    "test:briefing": "node tests/briefing-comparison.test.mjs && node tests/briefing-prompt.test.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.57.0",

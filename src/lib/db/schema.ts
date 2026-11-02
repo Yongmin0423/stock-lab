@@ -134,11 +134,17 @@ export const rules = pgTable("rules", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export type BriefingStockSection = {
+  symbol: string; name: string; changePct: number | null; summary: string;
+  snapshot?: import("../research/briefing-comparison").BriefingSnapshot;
+  comparison?: import("../research/briefing-comparison").StockComparison;
+};
+
 export const briefings = pgTable("briefings", {
   id: serial("id").primaryKey(),
   slot: text("slot", { enum: ["morning", "evening"] }).notNull(),
   marketSummary: text("market_summary"),
-  stockSections: jsonb("stock_sections").$type<Array<{ symbol: string; name: string; changePct: number | null; summary: string }>>(),
+  stockSections: jsonb("stock_sections").$type<BriefingStockSection[]>(),
   watchItems: jsonb("watch_items").$type<Array<{ symbol: string; name: string; reason: string; basis: string }>>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

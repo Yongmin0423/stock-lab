@@ -1,12 +1,12 @@
 # Cloudflare 리서치 Worker 연결
 
-구현 단계: Worker 연결. 대화 저장·AI 호출·노트 전송은 다음 단계에서 추가한다.
+구현 단계: Worker 연결 + [브리핑 수치 비교](브리핑_변화_비교.md). 대화 저장·Worker의 AI 호출·노트 전송은 후속 단계다.
 
 ## 배포 상태 (2026-11-02)
 
 - Worker: `stock-lab-research`
 - 주소: `https://stock-lab-research.yym21345.workers.dev`
-- 버전: `961b1286-03ad-47cb-bff8-e877ece92dde`
+- 최신 버전: `0c45af25-e988-448e-a5a7-ed1b77ebfef0` (브리핑 비교 추가)
 - 연결 시크릿을 등록했고, 실제 배포 주소에서 비인증 요청 401·서명 요청 정상 응답을 확인했다.
 - 로컬 `.env.local`에 주소와 연결 시크릿을 반영했다. 서버 재시작 후 설정 화면에서 확인할 수 있다.
 - Vercel 환경 변수 등록과 이 브랜치의 앱 배포는 아직 수행하지 않았다.
