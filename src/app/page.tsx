@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { DbSetupNotice } from "@/components/db-setup-notice";
 import { EmptyState } from "@/components/empty-state";
 import { MarketQuestion } from "@/components/market-question";
-import { PageLoading } from "@/components/page-loading";
+import { DashboardLoading } from "@/components/dashboard-loading";
 import { RefreshQuotesButton } from "@/components/refresh-quotes-button";
 import { SearchDialog } from "@/components/search-dialog";
 import { StockCard } from "@/components/stock-card";
@@ -49,7 +49,7 @@ export default function Dashboard() {
           <Link href="/notes" className="underline underline-offset-4">주식 공부 노트 읽기</Link>
         </div>
       </section>
-      <Suspense fallback={<PageLoading />}>
+      <Suspense fallback={<DashboardLoading />}>
         <DashboardContent />
       </Suspense>
     </>
