@@ -1,3 +1,10 @@
+### 2026-11-28
+
+- **홈 대시보드 전용 로딩 스켈레톤** — `src/components/dashboard-loading.tsx`, `src/app/page.tsx`
+  - 원인/이유: 홈 Suspense fallback이 공통 `PageLoading`(h-48 박스 하나)이라 실제 대시보드와 모양이 달라, 본문이 들어올 때 레이아웃이 크게 바뀌었다.
+  - 수정: 시장 바·브리핑 스트립·관심 종목 카드 3개·추천 리스트·주목 종목 모양의 `DashboardLoading`을 추가하고 홈 fallback만 교체했다. `PageLoading`은 다른 페이지 10곳이 같이 쓰므로 그대로 두었고, 루트 `loading.tsx`도 전 경로의 기본값이라 유지했다. 테스트가 본문 완료 판단에 쓰는 "Watchlist" 문구는 스켈레톤에 넣지 않았다.
+  - 검증: 변경 파일 린트, 타입 검사, `pnpm build` 통과. 프로덕션 서버 홈 응답 HTML에 스켈레톤이 포함되는 것을 확인했다. `tests/dashboard-production.test.mjs`는 이 작업 디렉터리에 `.env.local`(DB)이 없어 실패하며, 변경 전 코드에서도 같은 실패가 나는 것을 확인했다. DB가 연결된 환경에서의 통과 여부와 브라우저 화면은 미확인.
+
 ### 2026-11-02
 
 - **브리핑 작성 목표를 기존 자료의 종합 분석으로 조정** — `src/lib/ai/briefing.ts`
